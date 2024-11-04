@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Run SNORT IDS/IPS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #e9eef3;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group input[type="number"],
+        .form-group input[type="text"],
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            border: none;
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50;
+        }
+
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+        }
+
+        /* Added responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% csrf_token %}
+        <h2>Run SNORT IDS/IPS</h2>
+        <form id="snortForm" onsubmit="startSnort(event)">
+            <div class="form-group">
+                <label for="hours">Hours to run:</label>
+                <input type="number" id="hours" name="hours" step="0.01" required min="0.01" placeholder="Enter duration in hours">
+            </div>
+            <div class="form-group">
+                <label for="interface">Network Interface:</label>
+                <select id="interface" name="interface" required>
+                    <option value="">Select interface</option>
+                    <option value="eth0">eth1</option>
+                    <option value="eth1">eth0</option>
+                    <option value="wln0">wln0</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="configFile">Config File:</label>
+                <input type="text" id="configFile" name="configFile" required value="/etc/snort/snort.conf" placeholder="Enter config file path">
+            </div>
+            <div class="form-group">
+                <label for="captureType">Capture Type:</label>
+                <select id="captureType" name="captureType" required>
+                    <option value="">Select capture type</option>
+                    <option value="ids">IDS</option>
+                    <option value="ips">IPS</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">Start Snort</button>
+                <button type="button" class="btn btn-danger" onclick="stopSnort()">Stop Snort</button>
+            </div>
+        </form>
+    </div>
+        <script>
+            const csrftoken = getCookie('csrftoken');
+            async function startSnort(event) {
+                event.preventDefault(); // Prevent form from submitting normally
+
+                const hours = document.getElementById('hours').value;
+                const interface = document.getElementById('interface').value;
+                const configFile = document.getElementById('configFile').value;
+                const captureType = document.getElementById('captureType').value;
+
+                try {
+                    const response = await fetch("{% url 'run_ids' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        },
+                        body: JSON.stringify({
+                            hours: hours,
+                            interface: interface,
+                            config_file: configFile,
+                            capture_type: captureType,
+                            action: 'start'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(data.message);
+                    } else {
+                        alert('Error starting Snort: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error connecting to server');
+                }
+            }
+
+            async function stopSnort() {
+                try {
+                    const response = await fetch("{% url 'stop_ids' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(data.message);
+                    } else {
+                        alert('Error stopping Snort: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error connecting to server');
+                }
+            }
+
+
+
+            function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+        </script>
+
+</html>
