@@ -16,7 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from dashboard import views
+from django.conf.urls.static import static
+from django.conf import settings
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-]
+    path('', views.homepage, name='homepage'),
+    path('generate-rules/', views.generate_rules, name='generate_rules'),
+    path('run-ids/', views.run_ids, name='run_ids'),
+    path('open-log-analyzer/', views.open_log_analyzer, name='open_log_analyzer'),
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

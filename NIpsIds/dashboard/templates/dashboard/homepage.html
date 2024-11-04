@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homepage</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'dashboard/styles.css' %}">
+</head>
+<body>
+    <h1>Welcome, Admin i love you!</h1>
+    <button onclick="location.href='{% url 'generate_rules' %}'">Generate Rules</button>
+    <button onclick="location.href='{% url 'run_ids' %}'">Run IDS</button>
+    <button onclick="location.href='{% url 'open_log_analyzer' %}'">Open Log Analyzer</button>
+</body>
+</html>

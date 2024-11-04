@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snort IDS Log Analyzer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #e9eef3;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .filter-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .filter-section input {
+            width: 48%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .log-table th, .log-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        .log-table th {
+            background-color: #d9e2ec;
+        }
+        .log-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Snort IDS Log Analyzer</h2>
+        <div class="filter-section">
+            <input type="text" id="search" placeholder="Search logs...">
+            <input type="date" id="dateFilter" placeholder="Filter by date...">
+        </div>
+        <table class="log-table" id="logTable">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Source IP</th>
+                    <th>Source Port</th>
+                    <th>Destination IP</th>
+                    <th>Destination Port</th>
+                    <th>Protocol</th>
+                    <th>Alert Message</th>
+                    <th>Rule ID</th>
+                    <th>Classification</th>
+                    <th>Priority</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Log entries will be inserted here -->
+            </tbody>
+        </table>
+        <a href="#" class="button" onclick="analyzeLogs()">Analyze Logs</a>
+    </div>
+    <script>
+        function analyzeLogs() {
+            // Simulate fetching logs
+            const logs = [
+                {
+                    timestamp: "2023-10-01 12:00:00",
+                    srcIp: "192.168.1.1",
+                    srcPort: "12345",
+                    destIp: "10.0.0.5",
+                    destPort: "80",
+                    protocol: "TCP",
+                    alertMessage: "Possible intrusion detected",
+                    ruleId: "1001",
+                    classification: "Potentially Bad Traffic",
+                    priority: "High"
+                },
+                {
+                    timestamp: "2023-10-01 12:05:00",
+                    srcIp: "192.168.1.2",
+                    srcPort: "54321",
+                    destIp: "10.0.0.6",
+                    destPort: "443",
+                    protocol: "TCP",
+                    alertMessage: "Malicious activity detected",
+                    ruleId: "1002",
+                    classification: "Potentially Bad Traffic",
+                    priority: "Medium"
+                }
+            ];
+
+            const tbody = document.getElementById('logTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = ''; // Clear existing rows
+
+            logs.forEach(log => {
+                const row = tbody.insertRow();
+                Object.values(log).forEach(text => {
+                    const cell = row.insertCell();
+                    cell.textContent = text;
+                });
+            });
+        }
+
+        // Add more JavaScript logic for filtering and searching logs
+    </script>
+</body>
+</html>

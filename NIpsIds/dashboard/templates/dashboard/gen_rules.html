@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Rules</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #e9eef3;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .row input, .row select {
+            margin-right: 10px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .section {
+            background-color: #d9e2ec;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .add-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #b0c4de;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            margin: 10px auto;
+        }
+        .output {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-family: monospace;
+            margin-bottom: 10px;
+        }
+        .save-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <select id="action">
+                <option>alert</option>
+            </select>
+            <select id="protocol">
+                <option>tcp</option>
+            </select>
+            <input type="text" id="src_ip" placeholder="192.168.1.1">
+            <input type="text" id="src_port" placeholder="80">
+            <input type="text" id="dest_ip" placeholder="192.168.1.2">
+            <input type="text" id="dest_port" placeholder="80">
+            <input type="text" id="sid" placeholder="sid">
+            <input type="text" id="rev" placeholder="rev num">
+            <input type="text" id="msg" placeholder="adfd">
+            <select id="class_type">
+                <option>Class-Type</option>
+            </select>
+            <select id="priority">
+                <option>2</option>
+            </select>
+            <input type="text" id="gid" placeholder="gid">
+        </div>
+        <div class="section">
+            <h3>TCP</h3>
+            <div class="row">
+                <select id="http_method">
+                    <option>GET</option>
+                </select>
+                <input type="text" id="http_response_code" placeholder="HTTP RESPONSE CODE">
+            </div>
+            <div class="row">
+                <label><input type="checkbox" id="ack"> ACK</label>
+                <label><input type="checkbox" id="syn"> SYN</label>
+                <label><input type="checkbox" id="psh"> PSH</label>
+                <label><input type="checkbox" id="rst"> RST</label>
+                <label><input type="checkbox" id="fin"> FIN</label>
+                <label><input type="checkbox" id="urg"> URG</label>
+                <input type="text" id="plus" placeholder="+">
+                <input type="text" id="asterisk" placeholder="*">
+            </div>
+            <div class="row">
+                <select id="flow">
+                    <option>FROM_SERVER</option>
+                </select>
+                <select id="state">
+                    <option>stateless</option>
+                </select>
+            </div>
+            <div class="row">
+                <select id="data_size">
+                    <option>Data Size</option>
+                </select>
+                <input type="text" id="data_size_value">
+            </div>
+            <div class="row">
+                <select id="reference">
+                    <option>Reference</option>
+                </select>
+                <input type="text" id="reference_value">
+            </div>
+            <div class="row">
+                <select id="threshold_tracking_type">
+                    <option>Threshold Tracking Type</option>
+                </select>
+                <select id="trk_by">
+                    <option>TRK BY</option>
+                </select>
+                <input type="text" id="count" placeholder="Count #">
+                <input type="text" id="seconds" placeholder="Seconds">
+            </div>
+        </div>
+        <div class="add-button" onclick="generateSnortRule()">+</div>
+        <div class="output" id="ruleOutput">
+            <!-- Snort rule will be generated here -->
+        </div>
+        <a href="#" class="save-button" onclick="saveRuleToFile()">Save Rule to File</a>
+    </div>
+    <script>
+        function generateSnortRule() {
+            const action = document.getElementById('action').value;
+            const protocol = document.getElementById('protocol').value;
+            const srcIp = document.getElementById('src_ip').value;
+            const srcPort = document.getElementById('src_port').value;
+            const destIp = document.getElementById('dest_ip').value;
+            const destPort = document.getElementById('dest_port').value;
+            const sid = document.getElementById('sid').value;
+            const rev = document.getElementById('rev').value;
+            const msg = document.getElementById('msg').value;
+            const classType = document.getElementById('class_type').value;
+            const priority = document.getElementById('priority').value;
+            const gid = document.getElementById('gid').value;
+            const httpMethod = document.getElementById('http_method').value;
+            const httpResponseCode = document.getElementById('http_response_code').value;
+            const flow = document.getElementById('flow').value;
+            const state = document.getElementById('state').value;
+            const dataSize = document.getElementById('data_size').value;
+            const dataSizeValue = document.getElementById('data_size_value').value;
+            const reference = document.getElementById('reference').value;
+            const referenceValue = document.getElementById('reference_value').value;
+            const thresholdTrackingType = document.getElementById('threshold_tracking_type').value;
+            const trkBy = document.getElementById('trk_by').value;
+            const count = document.getElementById('count').value;
+            const seconds = document.getElementById('seconds').value;
+
+            const rule = `${action} ${protocol} ${srcIp} ${srcPort} -> ${destIp} ${destPort} (msg:"${msg}"; content:"${httpMethod}"; http_method; flow:${flow},${state}; priority:${priority}; sid:${sid}; rev:${rev}; gid:${gid}; class_type:${classType}; reference:${reference},${referenceValue}; threshold:${thresholdTrackingType},${trkBy},count:${count},seconds:${seconds};)`;
+
+            document.getElementById('ruleOutput').innerText = rule;
+        }
+
+        function saveRuleToFile() {
+            const rule = document.getElementById('ruleOutput').innerText;
+            // Logic to save the rule to a file goes here
+            alert('Rule saved: ' + rule);
+        }
+    </script>
+</body>
+</html>
