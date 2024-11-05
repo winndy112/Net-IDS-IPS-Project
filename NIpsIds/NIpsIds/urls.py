@@ -29,4 +29,5 @@ urlpatterns = [
     path('open-log-analyzer/', views.open_log_analyzer, name='open_log_analyzer'),
     path('run-ids/', views.run_ids, name='run_ids'),
     path('stop-ids/', views.stop_ids, name='stop_ids'),
+    path('save-rule/', views.save_rule, name='save_rule'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

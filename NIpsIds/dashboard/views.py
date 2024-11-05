@@ -21,6 +21,28 @@ def run_ids_ips(request):
 def open_log_analyzer(request):
     return render(request, 'dashboard/log_analyzer.html')
 
+@csrf_exempt
+def save_rule(request):
+    if request.method == 'POST':
+        try:
+            rule = request.POST.get('rule', '')
+            if rule:
+                # Define the path to the WSL file
+                file_path = '/etc/snort/rules/local.rules'
+                
+                # Prepare the command to append to the file
+                command = f'echo "{rule}" | sudo tee -a {file_path} > /dev/null'
+                
+                # Execute the command
+                subprocess.run(command, shell=True, check=True, executable='/bin/bash')
+
+                return JsonResponse({'message': f'Rule saved: {rule}', 'ok': True})
+            else:
+                return JsonResponse({'error': 'No rule provided'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 def stop_snort_after_hours(pid, hours):
     """Helper function to stop Snort after specified hours"""
     time.sleep(hours * 3600)  # Convert hours to seconds
