@@ -69,73 +69,143 @@
     <div class="container">
         <div class="row">
             <select id="action">
-                <option>alert</option>
+                <option value="">Action</option>
+                <option value="alert">alert</option>
+                <option value="log">log</option>
+                <option value="pass">pass</option>
+                <option value="drop">drop</option>
+                <option value="reject">reject</option>
             </select>
-            <select id="protocol">
-                <option>tcp</option>
+            <select id="protocol" onchange="updateFields()">
+                <option value="">Protocol</option>
+                <option value="tcp">tcp</option>
+                <option value="icmp">icmp</option>
+                <option value="udp">udp</option>
             </select>
-            <input type="text" id="src_ip" placeholder="192.168.1.1">
-            <input type="text" id="src_port" placeholder="80">
-            <input type="text" id="dest_ip" placeholder="192.168.1.2">
-            <input type="text" id="dest_port" placeholder="80">
-            <input type="text" id="sid" placeholder="sid">
-            <input type="text" id="rev" placeholder="rev num">
-            <input type="text" id="msg" placeholder="adfd">
-            <select id="class_type">
-                <option>Class-Type</option>
-            </select>
+
+            <input type="text" id="src_ip" placeholder="Source IP">
+            <input type="text" id="src_port" placeholder="Source Port">
+            <input type="text" id="dest_ip" placeholder="Dest IP">
+            <input type="text" id="dest_port" placeholder="Dest Port">
+            <input type="number" id="sid" placeholder="sid">
+            <input type="number" id="rev" placeholder="rev num">
+        </div>
+        <div class="row">
+            <input type="text" id="msg" placeholder="Rule Message ( \ Escape special characters)">
+            
+            <input type="text" id="class_type" placeholder="Class-Type">
             <select id="priority">
-                <option>2</option>
+                <option value="">Priority</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
             </select>
-            <input type="text" id="gid" placeholder="gid">
+            <input type="number" id="gid" placeholder="gid">
         </div>
         <div class="section">
-            <h3>TCP</h3>
             <div class="row">
-                <select id="http_method">
-                    <option>GET</option>
-                </select>
-                <input type="text" id="http_response_code" placeholder="HTTP RESPONSE CODE">
-            </div>
-            <div class="row">
-                <label><input type="checkbox" id="ack"> ACK</label>
-                <label><input type="checkbox" id="syn"> SYN</label>
-                <label><input type="checkbox" id="psh"> PSH</label>
-                <label><input type="checkbox" id="rst"> RST</label>
-                <label><input type="checkbox" id="fin"> FIN</label>
-                <label><input type="checkbox" id="urg"> URG</label>
-                <input type="text" id="plus" placeholder="+">
-                <input type="text" id="asterisk" placeholder="*">
-            </div>
-            <div class="row">
-                <select id="flow">
-                    <option>FROM_SERVER</option>
-                </select>
-                <select id="state">
-                    <option>stateless</option>
-                </select>
+                <div id="tcp_field" style="display: none;">TCP
+                    <select id="http_request_method" onchange="toggleHttpFields()">
+                        <option value="">HTTP REQUEST METHOD</option>
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="HEAD">HEAD</option>
+                        <option value="TRACE">TRACE</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="CONNECT">CONNECT</option>
+                    </select>
+                    <input type="text" id="http_response_code" placeholder="HTTP RESPONSE CODE" onchange="toggleHttpFields()">
+                    <label><input type="checkbox" id="ack"> ACK</label>
+                    <label><input type="checkbox" id="syn"> SYN</label>
+                    <label><input type="checkbox" id="psh"> PSH</label>
+                    <label><input type="checkbox" id="rst"> RST</label>
+                    <label><input type="checkbox" id="fin"> FIN</label>
+                    <label><input type="checkbox" id="urg"> URG</label>
+
+                    <select id="tcp_direction" onchange="toggleTCPState()">
+                        <option value="">DIRECTION</option>
+                        <option value="from_server">from_server</option>
+                        <option value="to_server">to_server</option>
+                        <option value="from_client">from_client</option>
+                        <option value="to_client">to_client</option>
+                    </select>
+
+                    <select id="tcp_state" disabled>
+                        <option value="">TCP STATE</option>
+                        <option value="established">established</option>
+                        <option value="stateless">stateless</option>
+                        <option value="not_established">not_established</option>
+                    </select>
+                    
+                </div>
+
+                <div id="udp_field" style="display: none;">UDP
+                    <select id="udp_direction">
+                        <option value="">DIRECTION</option>
+                        <option value="from_server">from_server</option>
+                        <option value="to_server">to_server</option>
+                        <option value="from_client">from_client</option>
+                        <option value="to_client">to_client</option>
+                    </select>
+                </div>
+
+                <div id="icmp_field" style="display: none;">ICMP
+                    <select id="itype">
+                        <option value="">ICMP TYPE</option>
+                        <option value=">">></option>
+                        <option value="<"><</option>
+                        <option value="=">=</option>
+                    </select>
+                    <input type="number" id="itype_value" placeholder="VALUE TYPE">
+                    <select id="icode">
+                        <option value="">ICMP CODE</option>
+                        <option value=">">></option>
+                        <option value="<"><</option>
+                        <option value="=">=</option>
+                    </select>
+                    <input type="number" id="icode_value" placeholder="VALUE CODE">
+                </div>
             </div>
             <div class="row">
                 <select id="data_size">
-                    <option>Data Size</option>
+                    <option value="">Data Size</option>
+                    <option value=">">></option>
+                    <option value="<"><</option>
+                    <option value="=">=</option>
                 </select>
-                <input type="text" id="data_size_value">
+                <input type="number" id="data_size_value" placeholder="VALUE SIZE">
             </div>
             <div class="row">
                 <select id="reference">
-                    <option>Reference</option>
+                    <option value="">Reference</option>
+                    <option value="url">URL</option>
+                    <option value="cve">CVE</option>
+                    <option value="bug">BUG</option>
+                    <option value="msb">MSB</option>
+                    <option value="ness">NESS</option>
+                    <option value="arac">ARAC</option>
+                    <option value="osvd">OSVD</option>
+                    <option value="mcaf">MCAF</option>
                 </select>
-                <input type="text" id="reference_value">
+                <input type="text" id="reference_value" placeholder="VALUE REFERENCE">
             </div>
             <div class="row">
                 <select id="threshold_tracking_type">
-                    <option>Threshold Tracking Type</option>
+                    <option value="">Threshold Tracking Type</option>
+                    <option value="limit">limit</option>
+                    <option value="threshold">threshold</option>
+                    <option value="both">both</option>
                 </select>
                 <select id="trk_by">
-                    <option>TRK BY</option>
+                    <option value="">TRK BY</option>
+                    <option value="by_src">by_src</option>
+                    <option value="by_dst">by_dst</option>
                 </select>
-                <input type="text" id="count" placeholder="Count #">
-                <input type="text" id="seconds" placeholder="Seconds">
+                <input type="number" id="count" placeholder="Count #">
+                <input type="number" id="seconds" placeholder="Seconds">
             </div>
         </div>
         <div class="add-button" onclick="generateSnortRule()">+</div>
@@ -145,41 +215,144 @@
         <a href="#" class="save-button" onclick="saveRuleToFile()">Save Rule to File</a>
     </div>
     <script>
+        function toggleTCPState() {
+            const direction = document.getElementById('tcp_direction').value;
+            const tcpState = document.getElementById('tcp_state');
+            
+            // Enable tcpState dropdown if a direction is selected, otherwise disable it
+            tcpState.disabled = direction === '';
+        }
+
+        function toggleHttpFields() {
+            const httpMethod = document.getElementById('http_request_method').value;
+            const httpResponseCode = document.getElementById('http_response_code').value;
+
+            document.getElementById('http_request_method').style.display = httpResponseCode ? 'none' : 'inline-block';
+            document.getElementById('http_response_code').style.display = httpMethod ? 'none' : 'inline-block';
+        }
+
+        function updateFields() {
+            const protocol = document.getElementById('protocol').value;
+            const tcp = document.getElementById('tcp_field');
+            const udp = document.getElementById('udp_field');
+            const icmp = document.getElementById('icmp_field');
+            if (protocol === 'tcp') {
+                tcp.style.display='block';
+                udp.style.display='none';
+                icmp.style.display='none';
+            } else if (protocol === 'udp') {
+                tcp.style.display='none';
+                udp.style.display='block';
+                icmp.style.display='none';
+            } else if (protocol === 'icmp') {
+                tcp.style.display='none';
+                udp.style.display='none';
+                icmp.style.display='block';
+            }
+        }
+
         function generateSnortRule() {
+            // Get the values from input fields
             const action = document.getElementById('action').value;
             const protocol = document.getElementById('protocol').value;
-            const srcIp = document.getElementById('src_ip').value;
-            const srcPort = document.getElementById('src_port').value;
-            const destIp = document.getElementById('dest_ip').value;
-            const destPort = document.getElementById('dest_port').value;
+            const srcIp = document.getElementById('src_ip').value || 'any';
+            const srcPort = document.getElementById('src_port').value || 'any';
+            const destIp = document.getElementById('dest_ip').value || 'any';
+            const destPort = document.getElementById('dest_port').value || 'any';
             const sid = document.getElementById('sid').value;
             const rev = document.getElementById('rev').value;
-            const msg = document.getElementById('msg').value;
+            const msg = document.getElementById('msg').value.replace(/\\/g, '\\\\');
             const classType = document.getElementById('class_type').value;
             const priority = document.getElementById('priority').value;
             const gid = document.getElementById('gid').value;
-            const httpMethod = document.getElementById('http_method').value;
-            const httpResponseCode = document.getElementById('http_response_code').value;
-            const flow = document.getElementById('flow').value;
-            const state = document.getElementById('state').value;
-            const dataSize = document.getElementById('data_size').value;
+
+            // Extra fields for protocol-specific rules
+            let protocolOptions = '';
+            if (protocol === 'tcp') {
+                const httpMethod = document.getElementById('http_request_method').value;
+                const httpResponseCode = document.getElementById('http_response_code').value;
+                const ack = document.getElementById('ack').checked ? 'A' : '';
+                const syn = document.getElementById('syn').checked ? 'S' : '';
+                const psh = document.getElementById('psh').checked ? 'P' : '';
+                const rst = document.getElementById('rst').checked ? 'R' : '';
+                const fin = document.getElementById('fin').checked ? 'F' : '';
+                const urg = document.getElementById('urg').checked ? 'U' : '';
+                const direction = document.getElementById('tcp_direction').value;
+                const tcpState = document.getElementById('tcp_state').value;
+                const flags = ack + syn + psh + rst + fin + urg;
+                protocolOptions = `${httpMethod ? `content:"${httpMethod}"; http_method; ` : ''}` +
+                    `${httpResponseCode ? `content:"${httpResponseCode}"; http_stat_code; ` : ''}` +
+                    `${flags ? 'flags:' + flags + '; ' : ''}` +
+                    `${direction ? 'flow:' + direction + (tcpState ? ',' + tcpState : '') + '; ' : ''}`;
+            } else if (protocol === 'icmp') {
+                const icmpType = document.getElementById('itype').value;
+                const icmpTypeValue = document.getElementById('itype_value').value;
+                const icmpCode = document.getElementById('icode').value;
+                const icmpCodeValue = document.getElementById('icode_value').value;
+
+                protocolOptions = `${icmpType ? 'itype:' + (icmpType === '=' ? '' : icmpType) + icmpTypeValue + '; ' : ''}` +
+                    `${icmpCode ? 'icode:' + (icmpCode === '=' ? '' : icmpCode) + icmpCodeValue + '; ' : ''}`;
+            } else if (protocol === 'udp') {
+                const direction = document.getElementById('udp_direction').value;
+                protocolOptions = direction ? `flow:${direction};` : '';
+            }
+
+            // Additional rule options
+            const dataSizeOperator = document.getElementById('data_size').value;
             const dataSizeValue = document.getElementById('data_size_value').value;
-            const reference = document.getElementById('reference').value;
+            const referenceType = document.getElementById('reference').value;
             const referenceValue = document.getElementById('reference_value').value;
-            const thresholdTrackingType = document.getElementById('threshold_tracking_type').value;
+            const thresholdType = document.getElementById('threshold_tracking_type').value;
             const trkBy = document.getElementById('trk_by').value;
             const count = document.getElementById('count').value;
             const seconds = document.getElementById('seconds').value;
 
-            const rule = `${action} ${protocol} ${srcIp} ${srcPort} -> ${destIp} ${destPort} (msg:"${msg}"; content:"${httpMethod}"; http_method; flow:${flow},${state}; priority:${priority}; sid:${sid}; rev:${rev}; gid:${gid}; class_type:${classType}; reference:${reference},${referenceValue}; threshold:${thresholdTrackingType},${trkBy},count:${count},seconds:${seconds};)`;
+            // Construct rule options
+            let ruleOptions = `(msg:"${msg}";`;
+            if (classType) ruleOptions += ` classtype:${classType};`;
+            if (priority) ruleOptions += ` priority:${priority};`;
+            if (gid) ruleOptions += ` gid:${gid};`;
+            if (sid) ruleOptions += ` sid:${sid};`;
+            if (rev) ruleOptions += ` rev:${rev};`;
+            if (dataSizeOperator && dataSizeValue) {
+                ruleOptions += ` dsize:${dataSizeOperator !== '=' ? dataSizeOperator : ''}${dataSizeValue};`;
+            }
+            if (referenceType && referenceValue) ruleOptions += ` reference:${referenceType},${referenceValue};`;
+            if (thresholdType && trkBy && count && seconds) {
+                ruleOptions += ` threshold:${thresholdType}, track ${trkBy}, count ${count}, seconds ${seconds};`;
+            }
+            if (protocolOptions) {
+                ruleOptions += `${protocolOptions}`;
+            }
+            ruleOptions += ')';
 
-            document.getElementById('ruleOutput').innerText = rule;
+            // Full rule syntax
+            const snortRule = `${action} ${protocol} ${srcIp} ${srcPort} -> ${destIp} ${destPort} ${ruleOptions}`;
+            
+            // Display generated rule in output div
+            document.getElementById('ruleOutput').innerText = snortRule;
         }
 
         function saveRuleToFile() {
-            const rule = document.getElementById('ruleOutput').innerText;
-            // Logic to save the rule to a file goes here
-            alert('Rule saved: ' + rule);
+            const rule = document.getElementById('ruleOutput').innerText.trim();
+            alert(rule);
+            fetch('/save-rule/', {
+                method: 'POST',
+                headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                body: new URLSearchParams({ rule: rule }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Error saving rule:', response);
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => console.log(data))
+            .catch(error => console.error('Fetch error:', error));
+
         }
     </script>
 </body>
