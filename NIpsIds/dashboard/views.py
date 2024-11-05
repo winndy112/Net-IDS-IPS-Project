@@ -37,24 +37,16 @@ def run_ids(request):
     full_path = os.path.join(path_log, filename)
     try:
         data = json.loads(request.body)
-        hours = float(data.get('hours', 0))  # Convert to float to handle decimal hours
+        hours = float(data.get('hours', 0))
         interface = data.get('interface') 
         config_file = data.get('config_file')
         capture_type = data.get('capture_type')
         action = data.get('action')
 
-        # Validate inputs
-        if not all([hours, interface, config_file, capture_type, action]):
-            return JsonResponse({'error': 'Missing required parameters'}, status=400)
+        # Add debug logging
+        print(f"Received parameters: hours={hours}, interface={interface}, config={config_file}, type={capture_type}, action={action}")
 
-        if capture_type not in ['ids', 'ips']:
-            return JsonResponse({'error': 'Invalid capture type'}, status=400)
-
-        if action not in ['start', 'stop']:
-            return JsonResponse({'error': 'Invalid action'}, status=400)
-
-        if hours <= 0:
-            return JsonResponse({'error': 'Hours must be greater than 0'}, status=400)
+        # ... existing code ...
 
         # Build Snort command based on parameters
         command = ['snort']
@@ -62,62 +54,84 @@ def run_ids(request):
         command.extend([
             '-i', interface,
             '-c', config_file,
-            '-l', path_log,  # Change log directory to Sample/
-            '-A', 'fast',    # Use fast alert output
-            '-K', 'csv',     # Output in CSV format
-            '-y',            # Include year in timestamp
-            '-L', filename   # Specific log filename
+            '-l', os.path.abspath(path_log),  # Use absolute path
+            '-A', 'fast',
+            #'-K', 'csv',
+            '-y',
+            '-L', filename
         ])
 
+        # Print the full command for debugging
+        print(f"Executing command: {' '.join(command)}")
 
-        # Start Snort process
         if action == 'start':
+            # Check if Snort is available
+            try:
+                test = subprocess.run(['snort', '--version'], 
+                    capture_output=True, 
+                    text=True, 
+                    check=True
+                )
+                print("Snort version check...", test.stdout)
+            except subprocess.CalledProcessError as e:
+                return JsonResponse({'error': f'Snort not available: {str(e)}'}, status=500)
+
+            # Start Snort with output capture
             process = subprocess.Popen(
                 command,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                text=True
             )
             
-            # Store process ID for later termination
+            # Check immediate errors
+            time.sleep(2)
+            if process.poll() is not None:
+                # Process failed to start or terminated
+                stdout, stderr = process.communicate()
+                error_msg = f"Snort failed to start.\nStdout: {stdout}\nStderr: {stderr}"
+                print("DEBUG: " + error_msg)
+                return JsonResponse({'error': error_msg}, status=500)
+
             pid = process.pid
             request.session['snort_pid'] = pid
             request.session['log_file'] = full_path
-            # Start a timer thread to stop Snort after specified hours
+
+            # Start output monitoring thread
+            def monitor_output():
+                while True:
+                    stderr_line = process.stderr.readline()
+                    stdout_line = process.stdout.readline()
+                    if stdout_line:
+                        print(f"Snort stdout: {stdout_line.strip()}")
+                    if stderr_line:
+                        print(f"Snort stderr: {stderr_line.strip()}")
+                    if process.poll() is not None:
+                        break
+
+            monitor_thread = threading.Thread(target=monitor_output, daemon=True)
+            monitor_thread.start()
+
+            # Start timer thread
             timer_thread = threading.Thread(
                 target=stop_snort_after_hours,
                 args=(pid, hours),
                 daemon=True
             )
             timer_thread.start()
-
             return JsonResponse({
                 'message': f'Snort started successfully and will run for {hours} hours. Logging to {filename}',
                 'pid': pid,
                 'log_file': filename
-            })
+            }, status=200)
         else:
-            # Stop Snort process
-            pid = request.session.get('snort_pid')
-            if pid:
-                try:
-                    os.kill(pid, signal.SIGTERM)
-                    log_file = request.session.get('log_file')
-                    del request.session['snort_pid']
-                    del request.session['log_file']
-                    return JsonResponse({
-                        'message': 'Snort stopped successfully',
-                        'log_file': log_file
-                    })
-                except ProcessLookupError:
-                    del request.session['snort_pid']
-                    del request.session['log_file']
-                    return JsonResponse({'message': 'Snort process already terminated'})
-            else:
-                return JsonResponse({'error': 'No running Snort process found'}, status=404)
+            
+            return JsonResponse({'error': 'No running Snort process found'}, status=404)
     except ValueError as e:
         return JsonResponse({'error': 'Invalid hours format'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 @require_http_methods(["POST"])
 def stop_ids(request):
     try:
