@@ -104,6 +104,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         {% csrf_token %}
@@ -111,7 +112,8 @@
         <form id="snortForm" onsubmit="startSnort(event)">
             <div class="form-group">
                 <label for="hours">Hours to run:</label>
-                <input type="number" id="hours" name="hours" step="0.01" required min="0.01" placeholder="Enter duration in hours">
+                <input type="number" id="hours" name="hours" step="0.01" required min="0.01"
+                    placeholder="Enter duration in hours">
             </div>
             <div class="form-group">
                 <label for="interface">Network Interface:</label>
@@ -124,7 +126,8 @@
             </div>
             <div class="form-group">
                 <label for="configFile">Config File:</label>
-                <input type="text" id="configFile" name="configFile" required value="/etc/snort/snort.conf" placeholder="Enter config file path">
+                <input type="text" id="configFile" name="configFile" required value="/etc/snort/snort.conf"
+                    placeholder="Enter config file path">
             </div>
             <div class="form-group">
                 <label for="captureType">Capture Type:</label>
@@ -140,84 +143,102 @@
             </div>
         </form>
     </div>
-        <script>
-            const csrftoken = getCookie('csrftoken');
-            async function startSnort(event) {
-                event.preventDefault(); // Prevent form from submitting normally
+    
+    <div id="console-output"></div>
+    <script>
+        const csrftoken = getCookie('csrftoken');
+        async function startSnort(event) {
+            event.preventDefault(); // Prevent form from submitting normally
 
-                const hours = document.getElementById('hours').value;
-                const interface = document.getElementById('interface').value;
-                const configFile = document.getElementById('configFile').value;
-                const captureType = document.getElementById('captureType').value;
+            const hours = document.getElementById('hours').value;
+            const interface = document.getElementById('interface').value;
+            const configFile = document.getElementById('configFile').value;
+            const captureType = document.getElementById('captureType').value;
 
-                try {
-                    const response = await fetch("{% url 'run_ids' %}", {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrftoken
-                        },
-                        body: JSON.stringify({
-                            hours: hours,
-                            interface: interface,
-                            config_file: configFile,
-                            capture_type: captureType,
-                            action: 'start'
-                        })
-                    });
+            try {
+                const response = await fetch("{% url 'run_ids' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({
+                        hours: hours,
+                        interface: interface,
+                        config_file: configFile,
+                        capture_type: captureType,
+                        action: 'start'
+                    })
+                });
 
-                    const data = await response.json();
+                const data = await response.json();
 
-                    if (response.ok) {
-                        alert(data.message);
-                    } else {
-                        alert('Error starting Snort: ' + data.error);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error connecting to server');
+                if (response.ok) {
+                    alert(data.message);
+                } else {
+                    alert('Error starting Snort: ' + data.error);
                 }
-            }
-
-            async function stopSnort() {
-                try {
-                    const response = await fetch("{% url 'stop_ids' %}", {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrftoken
-                        }
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        alert(data.message);
-                    } else {
-                        alert('Error stopping Snort: ' + data.error);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error connecting to server');
-                }
-            }
-
-
-
-            function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error connecting to server');
             }
         }
-        return cookieValue;
-    }
-        </script>
+
+        async function stopSnort() {
+            try {
+                const response = await fetch("{% url 'stop_ids' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message);
+                } else {
+                    alert('Error stopping Snort: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error connecting to server');
+            }
+        }
+
+
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+    <!-- QUANH -->
+    <script>
+        var socket = new WebSocket("ws://" + window.location.host + "/ws/snort_console_output/");
+
+        socket.onmessage = function (event) {
+            var data = JSON.parse(event.data);
+            var consoleOutput = document.getElementById("console-output");
+            consoleOutput.innerHTML += data.output + "<br>";
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+
+        socket.onclose = function (event) {
+            console.error("WebSocket closed unexpectedly");
+        };
+    </script>
+
 
 </html>

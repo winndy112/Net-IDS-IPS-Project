@@ -7,7 +7,8 @@ import subprocess
 import time, threading
 from datetime import datetime
 from django.views.decorators.http import require_http_methods
-
+import asyncio
+from channels.layers import get_channel_layer
 def homepage(request):
     return render(request, 'dashboard/homepage.html')
 
@@ -29,12 +30,14 @@ def stop_snort_after_hours(pid, hours):
         pass  # Process already terminated
 @require_http_methods(["POST"])
 def run_ids(request):
-    path_log = "Sample/"
+    path_log = os.path.join("/home/windy" "Net-IDS-IPS-Project", "Log")
+
     os.makedirs(path_log, exist_ok=True)
     
     # Generate filename with current datetime
     filename = f"alert_log.{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     full_path = os.path.join(path_log, filename)
+    print(f"filename: {filename}")
     try:
         data = json.loads(request.body)
         hours = float(data.get('hours', 0))
@@ -54,16 +57,16 @@ def run_ids(request):
         command.extend([
             '-i', interface,
             '-c', config_file,
-            '-l', os.path.abspath(path_log),  # Use absolute path
+            '-l', path_log,  # Use absolute path
             '-A', 'fast',
-            #'-K', 'csv',
+            # '-K', 'csv',
             '-y',
             '-L', filename
         ])
 
         # Print the full command for debugging
         print(f"Executing command: {' '.join(command)}")
-
+       
         if action == 'start':
             # Check if Snort is available
             try:
@@ -94,18 +97,40 @@ def run_ids(request):
                 return JsonResponse({'error': error_msg}, status=500)
 
             pid = process.pid
+            print(pid)
             request.session['snort_pid'] = pid
             request.session['log_file'] = full_path
 
             # Start output monitoring thread
             def monitor_output():
+                channel_layer = get_channel_layer()
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                async def send_output(line):
+                    await channel_layer.group_send(
+                        "snort_console_output",
+                        {
+                            'type': 'send_console_output',
+                            'output': line
+                        }
+                    )
+                async def send_completion_notification():
+                    await channel_layer.group_send(
+                        "snort_completion_notification",
+                        {
+                            'type': 'send_completion_notification',
+                            'message': 'Snort has finished creating the log file.'
+                        }
+                    )
                 while True:
                     stderr_line = process.stderr.readline()
                     stdout_line = process.stdout.readline()
                     if stdout_line:
                         print(f"Snort stdout: {stdout_line.strip()}")
+                        asyncio.run_coroutine_threadsafe(send_output(stdout_line.strip()), loop)
                     if stderr_line:
                         print(f"Snort stderr: {stderr_line.strip()}")
+                        asyncio.run_coroutine_threadsafe(send_output(stderr_line.strip()), loop)
                     if process.poll() is not None:
                         break
 
@@ -136,6 +161,7 @@ def run_ids(request):
 def stop_ids(request):
     try:
         pid = request.session.get('snort_pid')
+        print(pid)
         if pid:
             try:
                 os.kill(pid, signal.SIGTERM)
