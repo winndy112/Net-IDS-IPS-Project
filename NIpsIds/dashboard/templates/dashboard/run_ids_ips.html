@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Run SNORT IDS/IPS</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'dashboard/run_ids_ips.css' %}">
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Navbar -->
+        <nav class="navbar navbar-light bg-light mb-4">
+            <a href="{% url 'homepage' %}" class="navbar-brand">Home</a>
+        </nav>
+        {% csrf_token %}
+        <h2>Run SNORT IDS/IPS</h2>
+        <form id="snortForm" onsubmit="startSnort(event)">
+            <div class="form-group">
+                <label for="hours">Hours to run:</label>
+                <input type="number" class="form-control" id="hours" name="hours" step="0.01" required min="0.01" placeholder="Enter duration in hours">
+            </div>
+            <div class="form-group">
+                <label for="interface">Network Interface:</label>
+                <select id="interface" name="interface" class="form-control" required>
+                    <option value="">Select interface</option>
+                    <option value="eth0">eth0</option>
+                    <option value="eth1">eth1</option>
+                    <option value="wln0">wln0</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="configFile">Config File:</label>
+                <input type="text" id="configFile" name="configFile" class="form-control" required value="/etc/snort/snort.conf" placeholder="Enter config file path">
+            </div>
+            <div class="form-group">
+                <label for="captureType">Capture Type:</label>
+                <select id="captureType" name="captureType" class="form-control" required>
+                    <option value="">Select capture type</option>
+                    <option value="ids">IDS</option>
+                    <option value="ips">IPS</option>
+                </select>
+            </div>
+            <div class="button-group mt-3">
+                <button type="submit" class="btn btn-success">Start Snort</button>
+                <button type="button" class="btn btn-danger ml-2" onclick="stopSnort()">Stop Snort</button>
+            </div>
+        </form>
+    </div>
+        <script>
+            const csrftoken = getCookie('csrftoken');
+            async function startSnort(event) {
+                event.preventDefault(); // Prevent form from submitting normally
+
+                const hours = document.getElementById('hours').value;
+                const interface = document.getElementById('interface').value;
+                const configFile = document.getElementById('configFile').value;
+                const captureType = document.getElementById('captureType').value;
+
+                try {
+                    const response = await fetch("{% url 'run_ids' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        },
+                        body: JSON.stringify({
+                            hours: hours,
+                            interface: interface,
+                            config_file: configFile,
+                            capture_type: captureType,
+                            action: 'start'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(data.message);
+                    } else {
+                        alert('Error starting Snort: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error connecting to server');
+                }
+            }
+
+            async function stopSnort() {
+                try {
+                    const response = await fetch("{% url 'stop_ids' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(data.message);
+                    } else {
+                        alert('Error stopping Snort: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error connecting to server');
+                }
+            }
+
+
+
+            function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+        </script>
+    <!-- Include Bootstrap JS dependencies before closing body tag -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

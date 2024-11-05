@@ -1,16 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Homepage</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'dashboard/styles.css' %}">
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
+
 <body>
-    <h1>Welcome, Admin i love you!</h1>
-    <button onclick="location.href='{% url 'generate_rules' %}'">Generate Rules</button>
-    <button onclick="location.href='{% url 'run_ids' %}'">Run IDS</button>
-    <button onclick="location.href='{% url 'open_log_analyzer' %}'">Open Log Analyzer</button>
+    <div class="container mt-4 text-center">
+        <h1>Welcome, Admin!</h1>
+        <div class="mt-4">
+            <button onclick="location.href='{% url 'generate_rules' %}'" class="btn btn-primary mr-2">Generate
+                Rules</button>
+            <button onclick="location.href='{% url 'run_ids_ips' %}'" class="btn btn-success mr-2">Run IDS</button>
+            <button onclick="location.href='{% url 'open_log_analyzer' %}'" class="btn btn-info">Open Log
+                Analyzer</button>
+        </div>
+    </div>
+    <!-- Include Bootstrap JS dependencies before closing body tag -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
