@@ -1,149 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generate Rules</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f4f8;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            background-color: #e9eef3;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .row {
-            display: flex;
-            margin-bottom: 10px;
-        }
-        .row input, .row select {
-            margin-right: 10px;
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-        .section {
-            background-color: #d9e2ec;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .add-button {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #b0c4de;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            margin: 10px auto;
-        }
-        .output {
-            background-color: #fff;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-family: monospace;
-            margin-bottom: 10px;
-        }
-        .save-button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            text-align: center;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-    </style>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'dashboard/gen_rules.css' %}">
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
+
 <body>
-    <div class="container">
-        <div class="row">
-            <select id="action">
-                <option>alert</option>
-            </select>
-            <select id="protocol">
-                <option>tcp</option>
-            </select>
-            <input type="text" id="src_ip" placeholder="192.168.1.1">
-            <input type="text" id="src_port" placeholder="80">
-            <input type="text" id="dest_ip" placeholder="192.168.1.2">
-            <input type="text" id="dest_port" placeholder="80">
-            <input type="text" id="sid" placeholder="sid">
-            <input type="text" id="rev" placeholder="rev num">
-            <input type="text" id="msg" placeholder="adfd">
-            <select id="class_type">
-                <option>Class-Type</option>
-            </select>
-            <select id="priority">
-                <option>2</option>
-            </select>
-            <input type="text" id="gid" placeholder="gid">
-        </div>
-        <div class="section">
-            <h3>TCP</h3>
-            <div class="row">
-                <select id="http_method">
-                    <option>GET</option>
-                </select>
-                <input type="text" id="http_response_code" placeholder="HTTP RESPONSE CODE">
+    <div class="container mt-4">
+        <!-- Navbar -->
+        <nav class="navbar navbar-light bg-light mb-4">
+            <a href="{% url 'homepage' %}" class="navbar-brand">Home</a>
+        </nav>
+
+        <h2>Generate Rules</h2>
+
+        <form>
+            <div class="form-row">
+                <div class="form-group col-md-2">
+                    <label for="action">Action</label>
+                    <select id="action" class="form-control">
+                        <option>alert</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="protocol">Protocol</label>
+                    <select id="protocol" class="form-control">
+                        <option>tcp</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="src_ip">Source IP</label>
+                    <input type="text" id="src_ip" class="form-control" placeholder="192.168.1.1">
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="src_port">Source Port</label>
+                    <input type="text" id="src_port" class="form-control" placeholder="80">
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="dest_ip">Destination IP</label>
+                    <input type="text" id="dest_ip" class="form-control" placeholder="192.168.1.2">
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="dest_port">Destination Port</label>
+                    <input type="text" id="dest_port" class="form-control" placeholder="80">
+                </div>
             </div>
-            <div class="row">
-                <label><input type="checkbox" id="ack"> ACK</label>
-                <label><input type="checkbox" id="syn"> SYN</label>
-                <label><input type="checkbox" id="psh"> PSH</label>
-                <label><input type="checkbox" id="rst"> RST</label>
-                <label><input type="checkbox" id="fin"> FIN</label>
-                <label><input type="checkbox" id="urg"> URG</label>
-                <input type="text" id="plus" placeholder="+">
-                <input type="text" id="asterisk" placeholder="*">
+
+            <div class="form-row">
+                <div class="form-group col-md-2">
+                    <label for="sid">SID</label>
+                    <input type="text" id="sid" class="form-control" placeholder="sid">
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="rev">Rev</label>
+                    <input type="text" id="rev" class="form-control" placeholder="rev num">
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="msg">Message</label>
+                    <input type="text" id="msg" class="form-control" placeholder="adfd">
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="class_type">Class Type</label>
+                    <select id="class_type" class="form-control">
+                        <option>Class-Type</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="priority">Priority</label>
+                    <select id="priority" class="form-control">
+                        <option>2</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-2">
+                    <label for="gid">GID</label>
+                    <input type="text" id="gid" class="form-control" placeholder="gid">
+                </div>
             </div>
-            <div class="row">
-                <select id="flow">
-                    <option>FROM_SERVER</option>
-                </select>
-                <select id="state">
-                    <option>stateless</option>
-                </select>
+
+            <div class="section">
+                <h3>TCP</h3>
+                <div class="form-row">
+                    <div class="form-group col-md-2">
+                        <label for="http_method">HTTP Method</label>
+                        <select id="http_method" class="form-control">
+                            <option>GET</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-2">
+                        <label for="http_response_code">HTTP Response Code</label>
+                        <input type="text" id="http_response_code" class="form-control"
+                            placeholder="HTTP RESPONSE CODE">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-1">
+                        <label><input type="checkbox" id="ack"> ACK</label>
+                    </div>
+                    <div class="form-group col-md-1">
+                        <label><input type="checkbox" id="syn"> SYN</label>
+                    </div>
+                    <div class="form-group col-md-1">
+                        <label><input type="checkbox" id="psh"> PSH</label>
+                    </div>
+                    <div class="form-group col-md-1">
+                        <label><input type="checkbox" id="rst"> RST</label>
+                    </div>
+                    <div class="form-group col-md-1">
+                        <label><input type="checkbox" id="fin"> FIN</label>
+                    </div>
+                    <div class="form-group col-md-1">
+                        <label><input type="checkbox" id="urg"> URG</label>
+                    </div>
+                    <div class="form-group col-md-2">
+                        <input type="text" id="plus" class="form-control" placeholder="+">
+                    </div>
+                    <div class="form-group col-md-2">
+                        <input type="text" id="asterisk" class="form-control" placeholder="*">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-2">
+                        <label for="flow">Flow</label>
+                        <select id="flow" class="form-control">
+                            <option>FROM_SERVER</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-2">
+                        <label for="state">State</label>
+                        <select id="state" class="form-control">
+                            <option>stateless</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-2">
+                        <label for="data_size">Data Size</label>
+                        <select id="data_size" class="form-control">
+                            <option>Data Size</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-2">
+                        <input type="text" id="data_size_value" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-2">
+                        <label for="reference">Reference</label>
+                        <select id="reference" class="form-control">
+                            <option>Reference</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-2">
+                        <input type="text" id="reference_value" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-2">
+                        <label for="threshold_tracking_type">Threshold Tracking Type</label>
+                        <select id="threshold_tracking_type" class="form-control">
+                            <option>Threshold Tracking Type</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-2">
+                        <label for="trk_by">TRK BY</label>
+                        <select id="trk_by" class="form-control">
+                            <option>TRK BY</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-2">
+                        <input type="text" id="count" class="form-control" placeholder="Count #">
+                    </div>
+                    <div class="form-group col-md-2">
+                        <input type="text" id="seconds" class="form-control" placeholder="Seconds">
+                    </div>
+                </div>
             </div>
-            <div class="row">
-                <select id="data_size">
-                    <option>Data Size</option>
-                </select>
-                <input type="text" id="data_size_value">
+
+            <div class="form-group">
+                <button type="button" class="btn btn-primary" onclick="generateSnortRule()">Generate Rule</button>
+                <button type="button" class="btn btn-success ml-2" onclick="saveRuleToFile()">Save Rule to File</button>
             </div>
-            <div class="row">
-                <select id="reference">
-                    <option>Reference</option>
-                </select>
-                <input type="text" id="reference_value">
-            </div>
-            <div class="row">
-                <select id="threshold_tracking_type">
-                    <option>Threshold Tracking Type</option>
-                </select>
-                <select id="trk_by">
-                    <option>TRK BY</option>
-                </select>
-                <input type="text" id="count" placeholder="Count #">
-                <input type="text" id="seconds" placeholder="Seconds">
-            </div>
-        </div>
-        <div class="add-button" onclick="generateSnortRule()">+</div>
+        </form>
+
         <div class="output" id="ruleOutput">
             <!-- Snort rule will be generated here -->
         </div>
-        <a href="#" class="save-button" onclick="saveRuleToFile()">Save Rule to File</a>
     </div>
+    <!-- Include Bootstrap JS dependencies before closing body tag -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function generateSnortRule() {
             const action = document.getElementById('action').value;
@@ -183,4 +234,5 @@
         }
     </script>
 </body>
+
 </html>
