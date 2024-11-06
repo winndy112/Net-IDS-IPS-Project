@@ -9,6 +9,7 @@ from datetime import datetime
 from django.views.decorators.http import require_http_methods
 import asyncio
 from channels.layers import get_channel_layer
+from django.views.decorators.csrf import csrf_exempt
 def homepage(request):
     return render(request, 'dashboard/homepage.html')
 
@@ -52,14 +53,15 @@ def stop_snort_after_hours(pid, hours):
         pass  # Process already terminated
 @require_http_methods(["POST"])
 def run_ids(request):
-    path_log = os.path.join("/home/windy" "Net-IDS-IPS-Project", "Log")
-
-    os.makedirs(path_log, exist_ok=True)
+    # Create specific directories
+    user = os.environ.get('USER')
+    base_path = f"/home/{user}/Net-IDS-IPS-Project/Log"
+    alert_path = os.path.join(base_path, "alert_fast")
     
-    # Generate filename with current datetime
-    filename = f"alert_log.{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    full_path = os.path.join(path_log, filename)
-    print(f"filename: {filename}")
+    # Create directories with proper permissions
+    os.makedirs(alert_path, mode=0o755, exist_ok=True)
+    os.chmod(alert_path, 0o755)
+
     try:
         data = json.loads(request.body)
         hours = float(data.get('hours', 0))
@@ -68,23 +70,31 @@ def run_ids(request):
         capture_type = data.get('capture_type')
         action = data.get('action')
 
-        # Add debug logging
-        print(f"Received parameters: hours={hours}, interface={interface}, config={config_file}, type={capture_type}, action={action}")
+        # Generate timestamped log filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_filename = f"alert_{timestamp}.txt"
+        log_file_path = os.path.join(alert_path, log_filename)
 
-        # ... existing code ...
+        os.environ['SNORT_LOG_FILE'] = log_filename
 
-        # Build Snort command based on parameters
-        command = ['snort']
-        
+        # Modified Snort command
+        command = ['sudo', 'snort']  # Add sudo
         command.extend([
             '-i', interface,
             '-c', config_file,
-            '-l', path_log,  # Use absolute path
-            '-A', 'fast',
-            # '-K', 'csv',
+            '-l', alert_path,
+            '-A', 'alert_fast',  
+            '-k', 'none',
             '-y',
-            '-L', filename
         ])
+
+        # Debug info
+        print(f"Alert directory: {alert_path}")
+        print(f"Command: {' '.join(command)}")
+
+        # Add debug logging
+        print(f"Received parameters: hours={hours}, interface={interface}, config={config_file}, type={capture_type}, action={action}")
+
 
         # Print the full command for debugging
         print(f"Executing command: {' '.join(command)}")
@@ -121,40 +131,21 @@ def run_ids(request):
             pid = process.pid
             print(pid)
             request.session['snort_pid'] = pid
-            request.session['log_file'] = full_path
+            request.session['log_file'] = log_file_path
 
             # Start output monitoring thread
             def monitor_output():
                 channel_layer = get_channel_layer()
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                async def send_output(line):
-                    await channel_layer.group_send(
-                        "snort_console_output",
-                        {
-                            'type': 'send_console_output',
-                            'output': line
-                        }
-                    )
-                async def send_completion_notification():
-                    await channel_layer.group_send(
-                        "snort_completion_notification",
-                        {
-                            'type': 'send_completion_notification',
-                            'message': 'Snort has finished creating the log file.'
-                        }
-                    )
-                while True:
-                    stderr_line = process.stderr.readline()
-                    stdout_line = process.stdout.readline()
-                    if stdout_line:
-                        print(f"Snort stdout: {stdout_line.strip()}")
-                        asyncio.run_coroutine_threadsafe(send_output(stdout_line.strip()), loop)
-                    if stderr_line:
-                        print(f"Snort stderr: {stderr_line.strip()}")
-                        asyncio.run_coroutine_threadsafe(send_output(stderr_line.strip()), loop)
-                    if process.poll() is not None:
-                        break
+                while not os.path.exists(log_file_path):
+                    time.sleep(1)
+                
+                with open(log_file_path, 'r') as f:
+                    while True:
+                        line = f.readline()
+                        if not line:
+                            time.sleep(0.1)
+                            continue
+                        print(f"Alert: {line.strip()}")
 
             monitor_thread = threading.Thread(target=monitor_output, daemon=True)
             monitor_thread.start()
@@ -167,9 +158,9 @@ def run_ids(request):
             )
             timer_thread.start()
             return JsonResponse({
-                'message': f'Snort started successfully and will run for {hours} hours. Logging to {filename}',
+                'message': f'Snort started successfully and will run for {hours} hours. Logging to {log_file_path}',
                 'pid': pid,
-                'log_file': filename
+                'log_file': log_file_path
             }, status=200)
         else:
             
