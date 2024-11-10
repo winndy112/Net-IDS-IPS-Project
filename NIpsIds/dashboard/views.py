@@ -10,6 +10,11 @@ from django.views.decorators.http import require_http_methods
 import asyncio
 from channels.layers import get_channel_layer
 from django.views.decorators.csrf import csrf_exempt
+import os
+from pathlib import Path
+
+base_dir = Path(__file__).resolve().parent.parent.parent
+
 def homepage(request):
     return render(request, 'dashboard/homepage.html')
 
@@ -55,7 +60,7 @@ def stop_snort_after_hours(pid, hours):
 def run_ids(request):
     # Create specific directories
     user = os.environ.get('USER')
-    base_path = f"/home/{user}/Net-IDS-IPS-Project/Log"
+    base_path = f"log"
     alert_path = os.path.join(base_path, "alert_fast")
     
     # Create directories with proper permissions
@@ -71,14 +76,16 @@ def run_ids(request):
         action = data.get('action')
 
         # Generate timestamped log filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        log_filename = f"alert_{timestamp}.txt"
+        # timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_filename = "alert_fast.txt"
         log_file_path = os.path.join(alert_path, log_filename)
 
         os.environ['SNORT_LOG_FILE'] = log_filename
 
         # Modified Snort command
         command = ['sudo', 'snort']  # Add sudo
+        # command = ['snort']
+
         command.extend([
             '-i', interface,
             '-c', config_file,
@@ -146,6 +153,14 @@ def run_ids(request):
                             time.sleep(0.1)
                             continue
                         print(f"Alert: {line.strip()}")
+                        # Send alert through WebSocket
+                        asyncio.run(channel_layer.group_send(
+                            "snort_console",
+                            {
+                                "type": "send_console_output",
+                                "output": line.strip()
+                            }
+                        ))
 
             monitor_thread = threading.Thread(target=monitor_output, daemon=True)
             monitor_thread.start()

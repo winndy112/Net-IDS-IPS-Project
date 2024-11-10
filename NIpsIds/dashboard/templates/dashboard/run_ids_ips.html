@@ -50,6 +50,8 @@
             <div class="button-group mt-3">
                 <button type="submit" class="btn btn-success">Start Snort</button>
                 <button type="button" class="btn btn-danger ml-2" onclick="stopSnort()">Stop Snort</button>
+                <button type="button" class="btn btn-info ml-2"
+                    onclick="window.location.href='{% url 'open_log_analyzer' %}?live=true'">See Live Log</button>
             </div>
         </form>
     </div>
@@ -136,32 +138,61 @@
     </script>
     <!-- QUANH -->
     <script>
-        var socket = new WebSocket("ws://" + window.location.host + "/ws/snort_console_output/");
+        let socket = null;
 
-        socket.onmessage = function (event) {
-            var data = JSON.parse(event.data);
-            var consoleOutput = document.getElementById("console-output");
-            consoleOutput.innerHTML += data.output + "<br>";
-            consoleOutput.scrollTop = consoleOutput.scrollHeight;
-        };
-
-        socket.onclose = function (event) {
-            console.error("WebSocket closed unexpectedly");
-        };
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
+        function setupWebSocket() {
+            if (socket !== null) {
+                console.log("Closing existing socket connection");
+                socket.close();
             }
-            return cookieValue;
+
+            const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const host = window.location.hostname;
+            const port = '8080'; // Explicitly set port to match Daphne
+            const wsUrl = `${protocol}${host}:${port}/ws/snort_console_output/`;
+
+            console.log("Attempting WebSocket connection to:", wsUrl);
+
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function (event) {
+                console.log("WebSocket connection established");
+                const consoleOutput = document.getElementById("console-output");
+                consoleOutput.innerHTML += "<div style='color: green;'>WebSocket Connected ✓</div>";
+            };
+
+            socket.onmessage = function (event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    const consoleOutput = document.getElementById("console-output");
+                    consoleOutput.innerHTML += `<div>${data.output}</div>`;
+                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                } catch (error) {
+                    console.error("Error processing message:", error);
+                }
+            };
+
+            socket.onerror = function (error) {
+                console.error("WebSocket error:", error);
+                const consoleOutput = document.getElementById("console-output");
+                consoleOutput.innerHTML += "<div style='color: red;'>WebSocket Error: Connection failed ✗</div>";
+            };
+
+            socket.onclose = function (event) {
+                console.log("WebSocket closed. Attempting to reconnect in 5 seconds...");
+                const consoleOutput = document.getElementById("console-output");
+                consoleOutput.innerHTML += "<div style='color: orange;'>WebSocket Disconnected. Reconnecting...</div>";
+                setTimeout(setupWebSocket, 5000);
+            };
+
+            return socket;
         }
+
+        // Initialize WebSocket when the page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("Page loaded, initializing WebSocket");
+            setupWebSocket();
+        });
     </script>
 
     <!-- Include Bootstrap JS dependencies before closing body tag -->

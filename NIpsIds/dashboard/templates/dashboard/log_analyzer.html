@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <!-- Include Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
+
 <body>
     <div class="container mt-4">
         <!-- Navbar -->
@@ -20,14 +22,16 @@
 
         <div class="form-group">
             <label for="logFile">Choose Log File</label>
-            <input type="file" id="logFile" accept=".txt,.log" class="form-control-file" onchange="updateFileName(this)">
+            <input type="file" id="logFile" accept=".txt,.log" class="form-control-file"
+                onchange="updateFileName(this)">
             <small id="selectedFileName" class="form-text text-muted">No file chosen</small>
         </div>
         <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
 
         <div class="form-row">
             <div class="form-group col-md-6">
-                <input type="text" id="search" class="form-control" placeholder="Search (use: mess:, id:, proto:, src:, dst:, prio:, time:)">
+                <input type="text" id="search" class="form-control"
+                    placeholder="Search (use: mess:, id:, proto:, src:, dst:, prio:, time:)">
             </div>
             <div class="form-group col-md-6">
                 <input type="date" id="dateFilter" class="form-control" placeholder="Filter by date...">
@@ -55,10 +59,137 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const isLiveMode = urlParams.get('live') === 'true';
+
+        if (isLiveMode) {
+            // Hide file input elements
+            document.querySelector('.form-group').style.display = 'none';
+            setupWebSocket();
+        }
+
+        function setupWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const socket = new WebSocket(`${protocol}${window.location.host}/ws/snort_console_output/`);
+
+            socket.onmessage = function (event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.output) {
+                        // Clean and parse the line
+                        const line = data.output.trim().replace(/^\d+\|/, '');
+                        parseLiveLine(line);
+                    }
+                } catch (error) {
+                    console.error("Error processing WebSocket message:", error);
+                }
+            };
+
+            socket.onclose = function (event) {
+                console.log("WebSocket closed. Attempting to reconnect in 5 seconds...");
+                setTimeout(setupWebSocket, 5000);
+            };
+
+            socket.onerror = function (error) {
+                console.error("WebSocket error:", error);
+            };
+
+            return socket;
+        }
+
+        function parseLiveLine(line) {
+            if (!line.trim()) return;
+
+            try {
+                // Updated regex pattern to better handle various log formats
+                const pattern = /^(\d{2}\/\d{2}\/\d{2}-\d{2}:\d{2}:\d{2}\.\d+)\s+\[?\*\*\]\s+\[(\d+:\d+:\d+)\]\s+"([^"]+)"\s+\[?\*\*\]\s+\[Priority:\s*(\d+)\]\s+{(\w+)}\s+(?:(\S+)\s+->\s+(\S+)|(.*))/;
+                const match = line.match(pattern);
+
+                if (match) {
+                    const [, timestamp, ruleId, alertMessage, priority, protocol, source, destination, alternateInfo] = match;
+
+                    const tbody = document.getElementById('logTableBody');
+                    const row = tbody.insertRow(0); // Insert at the top
+
+                    // Add cells with the parsed data
+                    row.insertCell().textContent = timestamp;
+                    row.insertCell().textContent = ruleId;
+                    row.insertCell().textContent = alertMessage;
+                    row.insertCell().textContent = priority || 'N/A';
+                    row.insertCell().textContent = protocol;
+                    row.insertCell().textContent = source || 'N/A';
+                    row.insertCell().textContent = destination || alternateInfo || 'N/A';
+
+                    // Limit the number of rows to prevent memory issues
+                    const maxRows = 1000;
+                    while (tbody.rows.length > maxRows) {
+                        tbody.deleteRow(tbody.rows.length - 1);
+                    }
+
+                    // Apply any existing search filters
+                    applySearchFilter(row);
+                } else {
+                    console.warn("Could not parse log line:", line);
+                }
+            } catch (error) {
+                console.error("Error parsing live line:", error);
+            }
+        }
+
+        // Helper function to apply search filter to new rows
+        function applySearchFilter(row) {
+            const searchInput = document.getElementById('search');
+            const searchText = searchInput.value.toLowerCase();
+
+            if (!searchText) {
+                row.style.display = '';
+                return;
+            }
+
+            const columnMap = {
+                'time:': 0,
+                'id:': 1,
+                'mess:': 2,
+                'prio:': 3,
+                'proto:': 4,
+                'src:': 5,
+                'dst:': 6
+            };
+
+            let columnToSearch = -1;
+            let searchValue = searchText;
+
+            for (const [dork, column] of Object.entries(columnMap)) {
+                if (searchText.startsWith(dork)) {
+                    columnToSearch = column;
+                    searchValue = searchText.substring(dork.length);
+                    break;
+                }
+            }
+
+            let found = false;
+            if (columnToSearch === -1) {
+                // Search all columns
+                for (let i = 0; i < row.cells.length; i++) {
+                    const cellText = (row.cells[i].textContent || '').toLowerCase();
+                    if (cellText.includes(searchValue)) {
+                        found = true;
+                        break;
+                    }
+                }
+            } else {
+                // Search specific column
+                const cellText = (row.cells[columnToSearch].textContent || '').toLowerCase();
+                found = cellText.includes(searchValue);
+            }
+
+            row.style.display = found ? '' : 'none';
+        }
+
         function updateFileName(input) {
             const fileName = input.files[0] ? input.files[0].name : 'No file chosen';
             document.getElementById('selectedFileName').textContent = fileName;
-            
+
             // Automatically parse logs when file is selected
             if (input.files[0]) {
                 parseLogs();
@@ -77,7 +208,7 @@
             }
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 const text = e.target.result;
                 const lines = text.split('\n');
                 const tbody = document.getElementById('logTableBody');
@@ -97,7 +228,7 @@
                         const [, timestamp, ruleId, alertMessage, priority, protocol, source, destination] = match;
 
                         const row = tbody.insertRow();
-                        
+
                         // Timestamp
                         const timestampCell = row.insertCell();
                         timestampCell.textContent = timestamp;
@@ -220,4 +351,5 @@
         document.getElementById('search').placeholder = "Search (use: mess:, id:, proto:, src:, dst:, prio:, time:)";
     </script>
 </body>
+
 </html>

@@ -1,3 +1,8 @@
 django
-channels 
+channels
 channels_redis
+aiofiles
+asyncio
+pathlib
+websockets
+daphne
