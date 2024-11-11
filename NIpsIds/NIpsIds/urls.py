@@ -29,6 +29,6 @@ urlpatterns = [
     path('run-ids-ips/', views.run_ids_ips, name='run_ids_ips'),
     path('run-ids/', views.run_ids, name='run_ids'),
     path('stop-ids/', views.stop_ids, name='stop_ids'),
-    # path('switch-ips-mode/', views.switch_ips_mode, name='switch_ips_mode'),
+    path('switch-to-ips/', views.switch_ids_to_ips, name='switch-to-ips'),
     path('open-log-analyzer/', views.open_log_analyzer, name='open_log_analyzer'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
