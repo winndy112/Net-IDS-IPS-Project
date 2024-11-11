@@ -25,9 +25,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.homepage, name='homepage'),
     path('generate-rules/', views.generate_rules, name='generate_rules'),
+    path('save-rule/', views.save_rule, name='save_rule'),
     path('run-ids-ips/', views.run_ids_ips, name='run_ids_ips'),
-    path('open-log-analyzer/', views.open_log_analyzer, name='open_log_analyzer'),
     path('run-ids/', views.run_ids, name='run_ids'),
     path('stop-ids/', views.stop_ids, name='stop_ids'),
-    path('save-rule/', views.save_rule, name='save_rule'),
+    # path('switch-ips-mode/', views.switch_ips_mode, name='switch_ips_mode'),
+    path('open-log-analyzer/', views.open_log_analyzer, name='open_log_analyzer'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -136,7 +136,7 @@ def run_ids(request):
                 return JsonResponse({'error': error_msg}, status=500)
 
             pid = process.pid
-            print(pid)
+            # print(pid)
             request.session['snort_pid'] = pid
             request.session['log_file'] = log_file_path
 

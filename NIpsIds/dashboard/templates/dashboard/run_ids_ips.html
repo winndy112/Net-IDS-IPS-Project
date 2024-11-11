@@ -158,7 +158,7 @@
             socket.onopen = function (event) {
                 console.log("WebSocket connection established");
                 const consoleOutput = document.getElementById("console-output");
-                consoleOutput.innerHTML += "<div style='color: green;'>WebSocket Connected ✓</div>";
+                consoleOutput.innerHTML = "<div style='color: green;'>WebSocket Connected ✓</div>";
             };
 
             socket.onmessage = function (event) {
@@ -175,13 +175,13 @@
             socket.onerror = function (error) {
                 console.error("WebSocket error:", error);
                 const consoleOutput = document.getElementById("console-output");
-                consoleOutput.innerHTML += "<div style='color: red;'>WebSocket Error: Connection failed ✗</div>";
+                consoleOutput.innerHTML = "<div style='color: red;'>WebSocket Error: Connection failed ✗</div>";
             };
 
             socket.onclose = function (event) {
                 console.log("WebSocket closed. Attempting to reconnect in 5 seconds...");
                 const consoleOutput = document.getElementById("console-output");
-                consoleOutput.innerHTML += "<div style='color: orange;'>WebSocket Disconnected. Reconnecting...</div>";
+                consoleOutput.innerHTML = "<div style='color: orange;'>WebSocket Disconnected. Reconnecting...</div>";
                 setTimeout(setupWebSocket, 5000);
             };
 
