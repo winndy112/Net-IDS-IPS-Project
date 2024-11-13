@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snort IDS Log Analyzer</title>
+    {% csrf_token %}
     {% load static %}
     <link rel="stylesheet" href="{% static 'dashboard/log_analyzer.css' %}">
     <!-- Include Bootstrap CSS -->
@@ -19,7 +20,12 @@
         </nav>
 
         <h2>Snort IDS Log Analyzer</h2>
-
+        <!-- Add the Switch Mode button after the heading -->
+        <div class="mb-3">
+            <button id="switchModeBtn" class="btn btn-warning" onclick="switchToIPS()">
+                Switch to IPS Mode
+            </button>
+        </div>
         <div class="form-group">
             <label for="logFile">Choose Log File</label>
             <input type="file" id="logFile" accept=".txt,.log" class="form-control-file"
@@ -349,6 +355,46 @@
 
         // Update the search input placeholder to show available dorks
         document.getElementById('search').placeholder = "Search (use: mess:, id:, proto:, src:, dst:, prio:, time:)";
+    </script>
+    <!-- Quanh -->
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        function switchToIPS() {
+            
+            fetch("{% url 'switch-to-ips' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error switching to IPS mode: ' + data.error);
+                } else {
+                    alert('Successfully switched to IPS mode');
+                    document.getElementById('switchModeBtn').disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error switching to IPS mode');
+            });
+        }
     </script>
 </body>
 
