@@ -31,4 +31,5 @@ urlpatterns = [
     path('stop-ids/', views.stop_ids, name='stop_ids'),
     path('switch-to-ips/', views.switch_ids_to_ips, name='switch-to-ips'),
     path('open-log-analyzer/', views.open_log_analyzer, name='open_log_analyzer'),
+    path('check-snort-status/', views.check_snort_status, name='check-snort-status'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

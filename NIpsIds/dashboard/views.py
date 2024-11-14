@@ -21,6 +21,7 @@ global_config_file = None
 global_capture_type = None
 global_action = None
 global_daq_module = "afpacket"
+
 def homepage(request):
     return render(request, 'dashboard/homepage.html')
 
@@ -95,6 +96,7 @@ def gen_command_line(alert_path):
     else:
         return JsonResponse({'error': f'Invalid Capture type'}, status=400)
     return command
+
 @require_http_methods(["POST"])
 def run_ids(request):
     global global_hours
@@ -231,8 +233,10 @@ def switch_ids_to_ips(request):
 
         # Wait for the process to terminate
         time.sleep(2)  # Adjust this wait time if necessary
-        alert_path = request.session.get('log_file')
-        log_file_path = alert_path if alert_path else "alert_fast.txt"
+        
+        # Get the base alert path, not the full file path
+        alert_path = "log/alert_fast"  # Use the directory path only
+        
         global_capture_type = "IPS"
         command = gen_command_line(alert_path)
         
@@ -260,7 +264,7 @@ def switch_ids_to_ips(request):
         return JsonResponse({
             'message': f'Snort successfully switched to IPS mode. New PID: {new_pid}',
             'pid': new_pid,
-            'log_file': log_file_path
+            'log_file': os.path.join(alert_path, "alert_fast.txt")
         }, status=200)
 
     except Exception as e:
@@ -294,3 +298,16 @@ def stop_ids(request):
         return JsonResponse({
             'error': f'Error stopping Snort: {str(e)}'
         }, status=500)
+    
+def check_snort_status(request):
+    pid = request.session.get('snort_pid')
+    if pid:
+        try:
+            # Check if process is running
+            os.kill(pid, 0)  # This doesn't kill the process, just checks if it exists
+            return JsonResponse({'running': True, 'pid': pid})
+        except OSError:
+            # Process not found
+            del request.session['snort_pid']
+            return JsonResponse({'running': False})
+    return JsonResponse({'running': False})
