@@ -234,21 +234,13 @@ def switch_ids_to_ips(request):
     global global_ips_pid
 
     try:
-        # Retrieve current running Snort PID
-        # pid = request.session.get('snort_pid')
-        # if not pid:
-        #     return JsonResponse({'error': 'No running Snort process found'}, status=404)
-        # Stop the existing IDS process
-        # print(f"Stopping existing IDS process with PID: {pid}")
-        # try:
-        #     os.kill(pid, signal.SIGTERM)
-        # except OSError as e:
-        #     return JsonResponse({'error': f'Failed to stop IDS process: {str(e)}'}, status=500)
-
-        # Wait for the process to terminate
-        time.sleep(2)  # Adjust this wait time if necessary
-        alert_path = request.session.get('log_file')
-        log_file_path = alert_path if alert_path else "alert_fast.txt"
+        pid = request.session.get('snort_ips_pid')
+        if pid:
+            return JsonResponse({'error': 'IPS mode process is running'})
+        
+        # Get the base alert path, not the full file path
+        alert_path = "log/alert_fast"  # Use the directory path only
+        
         global_capture_type = "IPS"
         command = gen_command_line(alert_path)
         
@@ -277,7 +269,7 @@ def switch_ids_to_ips(request):
         return JsonResponse({
             'message': f'Snort successfully switched to IPS mode. IPS PID: {global_ips_pid}',
             'pid': global_ips_pid,
-            'log_file': log_file_path
+            'log_file': os.path.join(alert_path, "alert_fast.txt")
         }, status=200)
 
     except Exception as e:
