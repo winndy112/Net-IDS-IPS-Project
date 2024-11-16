@@ -116,26 +116,40 @@
             if (!line.trim()) return;
 
             try {
-                // Updated regex pattern to better handle various log formats
-                const pattern = /^(\d{2}\/\d{2}\/\d{2}-\d{2}:\d{2}:\d{2}\.\d+)\s+\[?\*\*\]\s+\[(\d+:\d+:\d+)\]\s+"([^"]+)"\s+\[?\*\*\]\s+\[Priority:\s*(\d+)\]\s+{(\w+)}\s+(?:(\S+)\s+->\s+(\S+)|(.*))/;
+                // Remove "Alert: " prefix if present
+                line = line.replace(/^Alert:\s*/, '').trim();
+
+                // Updated regex pattern to match live stream format
+                const pattern = /^(\d{2}\/\d{2}\/\d{2}-\d{2}:\d{2}:\d{2}\.\d+)\s+\[[\*]+\]\s+\[([^\]]+)\]\s+"([^"]+)"\s+\[[\*]+\]\s+\[Priority:\s*(\d+)\]\s+(?:\[AppID:\s*([^\]]+)\])?\s*{(\w+)}\s+(\S+)\s+->\s+(\S+)/;
+                
                 const match = line.match(pattern);
 
                 if (match) {
-                    const [, timestamp, ruleId, alertMessage, priority, protocol, source, destination, alternateInfo] = match;
+                    const [
+                        ,
+                        timestamp,
+                        ruleId,
+                        alertMessage,
+                        priority,
+                        appId,
+                        protocol,
+                        source,
+                        destination
+                    ] = match;
 
                     const tbody = document.getElementById('logTableBody');
-                    const row = tbody.insertRow(0); // Insert at the top
+                    const row = tbody.insertRow(0);
 
                     // Add cells with the parsed data
                     row.insertCell().textContent = timestamp;
                     row.insertCell().textContent = ruleId;
                     row.insertCell().textContent = alertMessage;
-                    row.insertCell().textContent = priority || 'N/A';
+                    row.insertCell().textContent = priority;
                     row.insertCell().textContent = protocol;
-                    row.insertCell().textContent = source || 'N/A';
-                    row.insertCell().textContent = destination || alternateInfo || 'N/A';
+                    row.insertCell().textContent = source;
+                    row.insertCell().textContent = destination;
 
-                    // Limit the number of rows to prevent memory issues
+                    // Limit the number of rows
                     const maxRows = 1000;
                     while (tbody.rows.length > maxRows) {
                         tbody.deleteRow(tbody.rows.length - 1);
@@ -144,7 +158,7 @@
                     // Apply any existing search filters
                     applySearchFilter(row);
                 } else {
-                    console.warn("Could not parse log line:", line);
+                    console.warn("Could not parse live line:", line);
                 }
             } catch (error) {
                 console.error("Error parsing live line:", error);
@@ -214,7 +228,7 @@
         function parseLogs() {
             const fileInput = document.getElementById('logFile');
             const errorMessage = document.getElementById('errorMessage');
-            errorMessage.style.display = 'none'; // Hide error message
+            errorMessage.style.display = 'none';
 
             if (!fileInput.files || !fileInput.files[0]) {
                 errorMessage.textContent = 'Please select a log file first';
@@ -227,60 +241,52 @@
                 const text = e.target.result;
                 const lines = text.split('\n');
                 const tbody = document.getElementById('logTableBody');
-                tbody.innerHTML = ''; // Clear existing rows
+                tbody.innerHTML = '';
 
                 lines.forEach(line => {
-                    // Skip empty lines
-                    if (!line.trim()) return;
+                    if (!line.trim() || !line.includes('Alert:')) return;
 
-                    // Remove line number prefix if present
-                    line = line.replace(/^\d+\|/, '');
+                    // Remove "Alert: " prefix and clean the line
+                    line = line.replace(/^Alert:\s*/, '').trim();
 
-                    // Parse the log line
-                    const match = line.match(/(\d{2}\/\d{2}-\d{2}:\d{2}:\d{2}\.\d+)\s+\[?\*\*\]\s+\[(\d+:\d+:\d+)\]\s+(.*?)\s+\[?\*\*\]\s*(\[Priority:\s*\d+\])?\s*{(\w+)}\s+(\S+)\s+->\s+(\S+)/);
+                    // Updated regex pattern to match the sample log format
+                    const pattern = /^(\d{2}\/\d{2}\/\d{2}-\d{2}:\d{2}:\d{2}\.\d+)\s+\[[\*]+\]\s+\[([^\]]+)\]\s+"([^"]+)"\s+\[[\*]+\]\s+\[Priority:\s*(\d+)\]\s+(?:\[AppID:\s*([^\]]+)\])?\s*{(\w+)}\s+(\S+)\s+->\s+(\S+)/;
+                    
+                    const match = line.match(pattern);
 
                     if (match) {
-                        const [, timestamp, ruleId, alertMessage, priority, protocol, source, destination] = match;
+                        const [
+                            ,
+                            timestamp,
+                            ruleId,
+                            alertMessage,
+                            priority,
+                            appId,
+                            protocol,
+                            source,
+                            destination
+                        ] = match;
 
                         const row = tbody.insertRow();
 
-                        // Timestamp
-                        const timestampCell = row.insertCell();
-                        timestampCell.textContent = timestamp;
+                        // Add cells with the parsed data
+                        row.insertCell().textContent = timestamp;
+                        row.insertCell().textContent = ruleId;
+                        row.insertCell().textContent = alertMessage;
+                        row.insertCell().textContent = priority;
+                        row.insertCell().textContent = protocol;
+                        row.insertCell().textContent = source;
+                        row.insertCell().textContent = destination;
 
-                        // Rule ID
-                        const ruleIdCell = row.insertCell();
-                        ruleIdCell.textContent = ruleId;
-
-                        // Alert Message
-                        const alertMessageCell = row.insertCell();
-                        alertMessageCell.textContent = alertMessage;
-
-                        // Priority
-                        const priorityCell = row.insertCell();
-                        priorityCell.textContent = priority ? priority.replace(/\[Priority:\s*|\]/g, '') : 'N/A';
-
-                        // Protocol
-                        const protocolCell = row.insertCell();
-                        protocolCell.textContent = protocol;
-
-                        // Source
-                        const sourceCell = row.insertCell();
-                        sourceCell.textContent = source;
-
-                        // Destination
-                        const destinationCell = row.insertCell();
-                        destinationCell.textContent = destination;
                     } else {
-                        errorMessage.textContent = 'Error parsing log file. Please ensure the file format is correct.';
-                        errorMessage.style.display = 'block';
+                        console.warn("Could not parse log line:", line);
                     }
                 });
 
                 // Add search event listener after populating the table
                 const searchInput = document.getElementById('search');
-                searchInput.value = ''; // Clear any existing search
-                searchInput.addEventListener('input', searchLogs); // Changed from 'keyup' to 'input'
+                searchInput.value = '';
+                searchInput.addEventListener('input', searchLogs);
             };
             reader.readAsText(fileInput.files[0]);
         }
