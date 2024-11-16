@@ -49,10 +49,12 @@
             </div>
             <div class="button-group mt-3">
                 <button type="submit" class="btn btn-success">Start Snort</button>
-                <button type="button" class="btn btn-danger ml-2" onclick="stopSnort()">Stop Snort</button>
+                <button type="button" class="btn btn-danger ml-2" onclick="stopIDS()">Stop Snort-IDS</button>
+                <button type="button" class="btn btn-danger ml-2" onclick="stopIPS()">Stop Snort-IPS</button>
                 <button type="button" class="btn btn-info ml-2"
                     onclick="window.location.href='{% url 'open_log_analyzer' %}?live=true'">See Live Log</button>
             </div>
+            <div id="logging"></div>
         </form>
     </div>
 
@@ -68,7 +70,7 @@
             const captureType = document.getElementById('captureType').value;
 
             try {
-                const response = await fetch("{% url 'run_ids' %}", {
+                const response = await fetch("{% url 'run_snort' %}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -87,6 +89,7 @@
 
                 if (response.ok) {
                     alert(data.message);
+                    document.getElementById('logging').innerText += data.message + " with pid: " + data.pid
                 } else {
                     alert('Error starting Snort: ' + data.error);
                 }
@@ -96,7 +99,7 @@
             }
         }
 
-        async function stopSnort() {
+        async function stopIDS(){
             try {
                 const response = await fetch("{% url 'stop_ids' %}", {
                     method: 'POST',
@@ -110,6 +113,7 @@
 
                 if (response.ok) {
                     alert(data.message + " with pid: " + data.pid);
+                    document.getElementById('logging').innerText += data.message + " with pid: " + data.pid;
                 } else {
                     alert('Error stopping Snort: ' + data.error);
                 }
@@ -118,7 +122,29 @@
                 alert('Error connecting to server');
             }
         }
+        async function stopIPS(){
+            try {
+                const response = await fetch("{% url 'stop_ips' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    }
+                });
 
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message + " with pid: " + data.pid);
+                    document.getElementById('logging').innerText += data.message + " with pid: " + data.pid;s
+                } else {
+                    alert('Error stopping Snort: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error connecting to server');
+            }
+        }
 
 
         function getCookie(name) {

@@ -25,6 +25,7 @@
             <button id="switchModeBtn" class="btn btn-warning" onclick="switchToIPS()">
                 Switch to IPS Mode
             </button>
+        <div id="logging"></div>
         </div>
         <div class="form-group">
             <label for="logFile">Choose Log File</label>
@@ -388,6 +389,7 @@
                 } else {
                     alert('Successfully switched to IPS mode');
                     document.getElementById('switchModeBtn').disabled = true;
+                    document.getElementById('logging').innerText = data.message;
                 }
             })
             .catch(error => {
