@@ -24,6 +24,7 @@ global_daq_module = "afpacket"
 global_ids_pid = None
 global_ips_pid = None
 
+
 def homepage(request):
     return render(request, 'dashboard/homepage.html')
 
@@ -245,10 +246,7 @@ def switch_ids_to_ips(request):
         #     return JsonResponse({'error': f'Failed to stop IDS process: {str(e)}'}, status=500)
 
         # Wait for the process to terminate
-        # time.sleep(2)  # Adjust this wait time if necessary
-        pid = request.session.get('snort_ips_pid')
-        if pid:
-            return JsonResponse({'error': 'IPS mode process is running'})
+        time.sleep(2)  # Adjust this wait time if necessary
         alert_path = request.session.get('log_file')
         log_file_path = alert_path if alert_path else "alert_fast.txt"
         global_capture_type = "IPS"
@@ -340,3 +338,16 @@ def stop_ips(request):
         return JsonResponse({
             'error': f'Error stopping Snort IPS: {str(e)}'
         }, status=500)
+    
+def check_snort_status(request):
+    pid = request.session.get('snort_pid')
+    if pid:
+        try:
+            # Check if process is running
+            os.kill(pid, 0)  # This doesn't kill the process, just checks if it exists
+            return JsonResponse({'running': True, 'pid': pid})
+        except OSError:
+            # Process not found
+            del request.session['snort_pid']
+            return JsonResponse({'running': False})
+    return JsonResponse({'running': False})

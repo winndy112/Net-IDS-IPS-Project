@@ -19,6 +19,15 @@
             <a href="{% url 'homepage' %}" class="navbar-brand">Home</a>
         </nav>
 
+        <div class="status-container mb-3">
+            <div id="snortStatus" class="alert" style="display: none;">
+                <span id="statusText"></span>
+            </div>
+            <button id="streamButton" class="btn btn-primary" style="display: none;" onclick="startStreaming()">
+                Stream Live Logs
+            </button>
+        </div>
+
         <h2>Snort IDS Log Analyzer</h2>
         <!-- Add the Switch Mode button after the heading -->
         <div class="mb-3">
@@ -397,6 +406,40 @@
                 alert('Error switching to IPS mode');
             });
         }
+    </script>
+    <script>
+        function checkSnortStatus() {
+            fetch('{% url "check-snort-status" %}')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('snortStatus');
+                    const statusText = document.getElementById('statusText');
+                    const streamButton = document.getElementById('streamButton');
+
+                    if (data.running) {
+                        statusDiv.style.display = 'block';
+                        statusDiv.className = 'alert alert-success';
+                        statusText.textContent = 'Capturing in progress';
+                        streamButton.style.display = 'inline-block';
+                        streamButton.disabled = true;  // Disable the button when capturing
+                    } else {
+                        statusDiv.style.display = 'block';
+                        statusDiv.className = 'alert alert-secondary';
+                        statusText.textContent = 'No active capture';
+                        streamButton.style.display = 'none';
+                        streamButton.disabled = false;  // Enable the button when not capturing
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function startStreaming() {
+            window.location.href = '{% url "open_log_analyzer" %}?live=true';
+        }
+    
+        // Check status every 5 seconds
+        checkSnortStatus();
+        setInterval(checkSnortStatus, 5000);
     </script>
 </body>
 
