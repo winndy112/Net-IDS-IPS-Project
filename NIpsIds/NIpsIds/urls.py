@@ -33,4 +33,7 @@ urlpatterns = [
     path('switch-to-ips/', views.switch_ids_to_ips, name='switch-to-ips'),
     path('open-log-analyzer/', views.open_log_analyzer, name='open_log_analyzer'),
     path('check-snort-status/', views.check_snort_status, name='check-snort-status'),
+    path('misp-extension/', views.misp_extension, name='misp_extension'),
+    path('start-schedule-misp/', views.start_schedule_misp, name='start_schedule_misp'),
+    path('export-event/', views.export_event, name='export_event'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

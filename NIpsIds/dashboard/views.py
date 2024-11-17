@@ -12,6 +12,9 @@ from channels.layers import get_channel_layer
 from django.views.decorators.csrf import csrf_exempt
 import os
 from pathlib import Path
+import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 base_dir = Path(__file__).resolve().parent.parent.parent
 # define global variables
@@ -37,6 +40,8 @@ def run_ids_ips(request):
 def open_log_analyzer(request):
     return render(request, 'dashboard/log_analyzer.html')
 
+def misp_extension(request):
+    return render(request, 'dashboard/misp_extension.html')
 @csrf_exempt
 def save_rule(request):
     if request.method == 'POST':
@@ -106,7 +111,7 @@ def run_snort(request):
     global global_interface
     global global_config_file
     global global_capture_type
-    global global_action
+    global_global_action
     global global_ids_pid
     global global_ips_pid
 
@@ -343,3 +348,241 @@ def check_snort_status(request):
             del request.session['snort_pid']
             return JsonResponse({'running': False})
     return JsonResponse({'running': False})
+
+###################################### MISP #########################################
+def get_tag_id(tag_name, headers, misp_url, verify_cert):
+    tags_url = f"{misp_url}/tags/index"
+    response = requests.get(tags_url, headers=headers, verify=verify_cert)
+    if response.status_code == 200:
+        tags = response.json()
+        for tag in tags:
+            if tag['name'] == tag_name:
+                return tag['id']
+    return None
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def start_schedule_misp(request):
+    try:
+        MISP_URL = "https://misp.local"
+        API_KEY = "19phcV91enGZloqR2i5eE7J0iFCqaOtOXEkJFFK8"
+        VERIFY_CERT = False
+
+        headers = {
+            "Authorization": API_KEY,
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
+
+        # Function to get the latest event that is not tagged as exported
+        def get_latest_event(misp_url, headers, verify_cert):
+            events_url = f"{misp_url}/events/restSearch"
+            data = {
+                "tags": "!exported",
+                "limit": 1,
+                "published": True,
+                "returnFormat": "json",
+                "sort": "date DESC"  # Sort by date in descending order
+            }
+            response = requests.post(events_url, headers=headers, json=data, verify=verify_cert)
+            if response.status_code == 200:
+                events = response.json()
+                if 'response' in events and events['response']:
+                    return events['response'][0]
+                else:
+                    print("No events found with the specified criteria.")
+                    return None
+            else:
+                print(f"Error fetching events: {response.status_code} - {response.text}")
+                return None
+
+        # Function to export event to Snort rules
+        def export_event_to_snort(event):
+            event_id = event['Event']['id']
+            tags = [tag['name'] for tag in event['Event']['Tag']]
+            event_category = classify_tags(tags)
+            threat_level = event['Event'].get('threat_level_id')
+            is_high_threat = threat_level == '1'
+
+            attributes_url = f"{MISP_URL}/attributes/restSearch"
+            attributes_data = {
+                "eventid": event_id,
+                "returnFormat": "snort",
+                "page": 1
+            }
+
+            response = requests.post(attributes_url, headers=headers, json=attributes_data, verify=VERIFY_CERT)
+            if response.status_code == 200:
+                snort_rules = response.text
+                rules = [line for line in snort_rules.splitlines() if line and not line.startswith('#')]
+                rule_count = len(rules)
+
+                if rule_count > 0:
+                    if is_high_threat:
+                        file_name = "ips.rules"
+                        rules = [line.replace("alert", "drop", 1) for line in rules]
+                    else:
+                        file_name = f"{event_category}.rules"
+
+                    output_dir = os.path.join(os.path.dirname(__file__), 'misp-result')
+                    if not os.path.exists(output_dir):
+                        os.makedirs(output_dir)
+                    file_path = os.path.join(output_dir, file_name)
+                    with open(file_path, 'a') as file:
+                        file.write("\n".join(rules) + "\n")
+                    print("ok")
+                    # Get the tag ID for 'exported'
+                    tag_id = 1985
+                    if not tag_id:
+                        return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
+                    # Tag the event as exported
+                    tag_url = f"{MISP_URL}/events/addTag/{event_id}/{tag_id}/local:1"
+                    tag_response = requests.post(tag_url, headers=headers, verify=VERIFY_CERT)
+                    if tag_response.status_code != 200:
+                        return JsonResponse({'error': f"Failed to tag event as exported: {tag_response.status_code} - {tag_response.text}"}, status=tag_response.status_code)
+                    
+                    return JsonResponse({
+                        'message': f'{rule_count} Snort rules from event ID {event_id} appended to file {file_name}',
+                        'file_path': file_path
+                    }, status=200)
+                    
+                else:
+                    tag_id = 1985
+                    if not tag_id:
+                        return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
+                    # Tag the event as exported
+                    tag_url = f"{MISP_URL}/events/addTag/{event_id}/{tag_id}/local:1"
+                    tag_response = requests.post(tag_url, headers=headers, verify=VERIFY_CERT)
+                    return JsonResponse({'message': f'No valid Snort rules from event ID {event_id} to append'}, status=200)
+            else:
+                return JsonResponse({'error': f"Error exporting event: {response.status_code} - {response.text}"}, status=response.status_code)
+                
+
+        event = get_latest_event(MISP_URL, headers, VERIFY_CERT)
+        if event:
+            return export_event_to_snort(event)
+        else:
+            return JsonResponse({'message': 'No new event to export to Snort'}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def export_event(request):
+    try:
+        data = json.loads(request.body)
+        event_id = data.get('event_id')
+        if not event_id:
+            return JsonResponse({'error': 'Event ID is required'}, status=400)
+
+        MISP_URL = "https://misp.local"
+        API_KEY = "19phcV91enGZloqR2i5eE7J0iFCqaOtOXEkJFFK8"
+        VERIFY_CERT = False
+
+        headers = {
+            "Authorization": API_KEY,
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
+
+        # First request to get event information and check tags
+        event_url = f"{MISP_URL}/events/view/{event_id}"
+        event_response = requests.get(event_url, headers=headers, verify=VERIFY_CERT)
+
+        if event_response.status_code == 200:
+            event_data = event_response.json()
+            if 'Event' in event_data:
+                tags = [tag['name'] for tag in event_data['Event']['Tag']]
+                if 'exported' in tags:
+                    return JsonResponse({'message': 'Event already exported!'}, status=200)
+                
+                event_category = classify_tags(tags)
+                print("Event Category:", event_category)
+
+                # Check if the event has a high threat model
+                threat_level = event_data['Event'].get('threat_level_id')
+                is_high_threat = threat_level == '1'  # Assuming '1' indicates high threat
+
+                # Second request to get snort rules if tags are valid
+                attributes_url = f"{MISP_URL}/attributes/restSearch"
+                attributes_data = {
+                    "eventid": event_id,
+                    "returnFormat": "snort",
+                    "page": 1
+                }
+
+                response = requests.post(attributes_url, headers=headers, json=attributes_data, verify=VERIFY_CERT)
+
+                if response.status_code == 200:
+                    snort_rules = response.text
+                    rules = [line for line in snort_rules.splitlines() if line and not line.startswith('#')]
+                    rule_count = len(rules)
+
+                    if rule_count > 0:
+                        if is_high_threat:
+                            file_name = "ips.rules"
+                            rules = [line.replace("alert", "drop", 1) for line in rules]
+                        else:
+                            file_name = f"{event_category}.rules"
+
+                        output_dir = os.path.join(os.path.dirname(__file__), 'misp-result')
+                        if not os.path.exists(output_dir):
+                            os.makedirs(output_dir)
+                        file_path = os.path.join(output_dir, file_name)
+                        with open(file_path, 'a') as file:
+                            file.write("\n".join(rules) + "\n")
+                        
+                        # Get the tag ID for 'exported'
+                        tag_id = 1985
+                        if not tag_id:
+                            return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
+
+                        # Tag the event as exported
+                        tag_url = f"{MISP_URL}/events/addTag/{event_id}/{tag_id}/local:1"
+                        tag_response = requests.post(tag_url, headers=headers, verify=VERIFY_CERT)
+                        if tag_response.status_code != 200:
+                            return JsonResponse({'error': f"Failed to tag event as exported: {tag_response.status_code} - {tag_response.text}"}, status=tag_response.status_code)
+                        
+                        return JsonResponse({
+                            'message': f'{rule_count} Snort rules from event ID {event_id} appended to file {file_name}',
+                            'file_path': file_path
+                        }, status=200)
+                    else:
+                        # Get the tag ID for 'exported'
+                        tag_id = 1985
+                        if not tag_id:
+                            return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
+
+                        # Tag the event as exported
+                        tag_url = f"{MISP_URL}/events/addTag/{event_id}/{tag_id}/local:1"
+                        tag_response = requests.post(tag_url, headers=headers, verify=VERIFY_CERT)
+                        if tag_response.status_code != 200:
+                            return JsonResponse({'error': f"Failed to tag event as exported: {tag_response.status_code} - {tag_response.text}"}, status=tag_response.status_code)
+                        return JsonResponse({'message': f'No valid Snort rules from event ID {event_id} to append'}, status=200)
+                else:
+                    return JsonResponse({'error': f"Error exporting event: {response.status_code} - {response.text}"}, status=response.status_code)
+            else:
+                return JsonResponse({'error': "'Event' key not found in the response data"}, status=400)
+        else:
+            return JsonResponse({'error': f"Error fetching event: {event_response.status_code} - {event_response.text}"}, status=event_response.status_code)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# Define the categories and their priorities
+categories = {
+    'spyware-adware': ['spyware', 'adware'],
+    'phishing': ['phishing'],
+    'exploit': ['exploit'],
+    'ransomware': ['ransomware', 'ransom'],
+    'malware': ['malware'],
+    'apt': ['apt', 'apt-', 'apt0', 'apt1', 'apt2', 'apt3', 'apt4', 'apt5', 'apt6', 'apt7', 'apt8', 'apt9']
+}
+
+def classify_tags(tags):
+    for category, keywords in categories.items():
+        for tag in tags:
+            tag_lower = tag.lower()
+            if any(keyword in tag_lower for keyword in keywords):
+                return category
+    return 'unclassified'
