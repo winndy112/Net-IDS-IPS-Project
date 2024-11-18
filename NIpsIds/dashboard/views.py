@@ -26,7 +26,8 @@ global_action = None
 global_daq_module = "afpacket"
 global_ids_pid = None
 global_ips_pid = None
-
+ruleset_dir = "/usr/local/etc/rules/"
+snort_conf_path = '/usr/local/etc/snort/snort.lua'
 
 def homepage(request):
     return render(request, 'dashboard/homepage.html')
@@ -44,12 +45,13 @@ def misp_extension(request):
     return render(request, 'dashboard/misp_extension.html')
 @csrf_exempt
 def save_rule(request):
+    global ruleset_dir
     if request.method == 'POST':
         try:
             rule = request.POST.get('rule', '')
             if rule:
                 # Define the path to the WSL file
-                file_path = '/etc/snort/rules/local.rules'
+                file_path = os.path.join(ruleset_dir,'local.rules')
                 
                 # Prepare the command to append to the file
                 command = f'echo "{rule}" | sudo tee -a {file_path} > /dev/null'
@@ -279,7 +281,7 @@ def switch_ids_to_ips(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-  
+# stop ids or ips function
 @require_http_methods(["POST"])
 def stop_ids(request):
     try:
@@ -388,9 +390,11 @@ def get_tag_id(tag_name, headers, misp_url, verify_cert):
 @csrf_exempt
 @require_http_methods(["POST"])
 def start_schedule_misp(request):
+    global ruleset_dir
     try:
         MISP_URL = "https://misp.local"
-        API_KEY = "19phcV91enGZloqR2i5eE7J0iFCqaOtOXEkJFFK8"
+        # API_KEY = "19phcV91enGZloqR2i5eE7J0iFCqaOtOXEkJFFK8" ### thùy
+        API_KEY = "a7nWtcIxhwmJuZZR7sXce0BJ96ST0h3ehLZCMpNB" ### quanh
         VERIFY_CERT = False
 
         headers = {
@@ -449,7 +453,7 @@ def start_schedule_misp(request):
                     else:
                         file_name = f"{event_category}.rules"
 
-                    output_dir = os.path.join(os.path.dirname(__file__), 'misp-result')
+                    output_dir = os.path.join(ruleset_dir, 'misp-result')
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
                     file_path = os.path.join(output_dir, file_name)
@@ -457,7 +461,8 @@ def start_schedule_misp(request):
                         file.write("\n".join(rules) + "\n")
                     print("ok")
                     # Get the tag ID for 'exported'
-                    tag_id = 1985
+                    # tag_id = 1985 ### thùy
+                    tag_id = 1991 ### quanh
                     if not tag_id:
                         return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
                     # Tag the event as exported
@@ -494,6 +499,7 @@ def start_schedule_misp(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def export_event(request):
+    global ruleset_dir
     try:
         data = json.loads(request.body)
         event_id = data.get('event_id')
@@ -501,7 +507,8 @@ def export_event(request):
             return JsonResponse({'error': 'Event ID is required'}, status=400)
 
         MISP_URL = "https://misp.local"
-        API_KEY = "19phcV91enGZloqR2i5eE7J0iFCqaOtOXEkJFFK8"
+        # API_KEY = "19phcV91enGZloqR2i5eE7J0iFCqaOtOXEkJFFK8" ### thùy
+        API_KEY = "a7nWtcIxhwmJuZZR7sXce0BJ96ST0h3ehLZCMpNB" ### quanh
         VERIFY_CERT = False
 
         headers = {
@@ -550,7 +557,7 @@ def export_event(request):
                         else:
                             file_name = f"{event_category}.rules"
 
-                        output_dir = os.path.join(os.path.dirname(__file__), 'misp-result')
+                        output_dir = os.path.join(ruleset_dir, 'misp-result')
                         if not os.path.exists(output_dir):
                             os.makedirs(output_dir)
                         file_path = os.path.join(output_dir, file_name)
@@ -611,3 +618,90 @@ def classify_tags(tags):
             if any(keyword in tag_lower for keyword in keywords):
                 return category
     return 'unclassified'
+
+######################################################################
+def get_rule_count(file_path):
+    try:
+        with open(file_path, 'r') as f:
+            # Count lines that aren't empty or comments
+            return sum(1 for line in f if line.strip() and not line.strip().startswith('#'))
+    except Exception:
+        return 0
+    
+@require_http_methods(["GET"])
+def get_ruleset_status(request):
+    global ruleset_dir
+    try:
+        rules_info = []
+        # Check both main rules directory and misp-rules directory
+        directories = [
+            ruleset_dir, #/rules/
+            os.path.join(ruleset_dir, 'misp-result') # .../rules/misp-result
+        ]
+        
+        for directory in directories:
+            if os.path.exists(directory):
+                for file_name in os.listdir(directory):
+                    if file_name.endswith('.rules'):
+                        file_path = os.path.join(directory, file_name)
+                        # Check if file is enabled (not commented out in snort.lua)
+                        status = check_rule_status(file_path) # true for enable and false for disable
+                        count = get_rule_count(file_path)
+                        
+                        rules_info.append({
+                            'name': file_name,
+                            'status': status,
+                            'count': count
+                        })
+        
+        return JsonResponse(rules_info, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def check_rule_status(file_path):
+    global ruleset_dir
+    global snort_conf_path
+    try:
+        
+        with open(snort_conf_path, 'r') as f:
+            content = f.read()
+            # Check if the include line for this rule is commented out
+            rule_include = f'include = "{file_path}"' 
+            return rule_include in content and not f'-- {rule_include}' in content
+    except Exception:
+        return False
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def toggle_rule_status(request):
+    global ruleset_dir
+    global snort_conf_path
+    try:
+        data = json.loads(request.body)
+        rule_name = data.get('rule_name')
+        if not rule_name:
+            return JsonResponse({'error': 'Rule name is required'}, status=400)
+        
+        
+        with open(snort_conf_path, 'r') as f:
+            lines = f.readlines()
+        
+        # Find and toggle the rule's include line
+        for i, line in enumerate(lines):
+            if rule_name in line:
+                if line.strip().startswith('--'):
+                    # Uncomment the line
+                    lines[i] = line.lstrip('-- ')
+                else:
+                    # Comment out the line
+                    lines[i] = '-- ' + line
+                
+                # Write changes back to file
+                with open(snort_conf_path, 'w') as f:
+                    f.writelines(lines)
+                
+                return JsonResponse({'success': True})
+        
+        return JsonResponse({'error': 'Rule not found in configuration'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
