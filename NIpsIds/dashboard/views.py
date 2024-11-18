@@ -111,7 +111,7 @@ def run_snort(request):
     global global_interface
     global global_config_file
     global global_capture_type
-    global_global_action
+    global global_action
     global global_ids_pid
     global global_ips_pid
 
@@ -336,18 +336,43 @@ def stop_ips(request):
             'error': f'Error stopping Snort IPS: {str(e)}'
         }, status=500)
     
+# views.py - Update check_snort_status function
 def check_snort_status(request):
-    pid = request.session.get('snort_pid')
-    if pid:
+    ids_pid = request.session.get('snort_ids_pid')
+    ips_pid = request.session.get('snort_ips_pid')
+    
+    status = {
+        'ids_running': False,
+        'ips_running': False,
+        'running': False
+    }
+
+    def check_process(pid):
         try:
-            # Check if process is running
-            os.kill(pid, 0)  # This doesn't kill the process, just checks if it exists
-            return JsonResponse({'running': True, 'pid': pid})
-        except OSError:
-            # Process not found
-            del request.session['snort_pid']
-            return JsonResponse({'running': False})
-    return JsonResponse({'running': False})
+            if pid:
+                os.kill(int(pid), 0)  # Check if process exists
+                return True
+        except (OSError, ProcessLookupError, ValueError):
+            return False
+        return False
+
+    # Check IDS status
+    if check_process(ids_pid):
+        status['ids_running'] = True
+        status['ids_pid'] = ids_pid
+        status['running'] = True
+    elif ids_pid:
+        del request.session['snort_ids_pid']
+
+    # Check IPS status 
+    if check_process(ips_pid):
+        status['ips_running'] = True
+        status['ips_pid'] = ips_pid
+        status['running'] = True
+    elif ips_pid:
+        del request.session['snort_ips_pid']
+
+    return JsonResponse(status)
 
 ###################################### MISP #########################################
 def get_tag_id(tag_name, headers, misp_url, verify_cert):
