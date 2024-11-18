@@ -7,161 +7,273 @@
     <title>Generate Rules</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'dashboard/gen_rules.css' %}">
+
     <!-- Include Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 
 <body>
-    <div class="container">
-        <div class="row">
-            <select id="action">
-                <option value="">Action</option>
-                <option value="alert">alert</option>
-                <option value="log">log</option>
-                <option value="pass">pass</option>
-                <option value="drop">drop</option>
-                <option value="reject">reject</option>
-            </select>
-            <select id="protocol" onchange="updateFields()">
-                <option value="">Protocol</option>
-                <option value="tcp">tcp</option>
-                <option value="icmp">icmp</option>
-                <option value="udp">udp</option>
-            </select>
-
-            <input type="text" id="src_ip" placeholder="Source IP">
-            <input type="text" id="src_port" placeholder="Source Port">
-            <input type="text" id="dest_ip" placeholder="Dest IP">
-            <input type="text" id="dest_port" placeholder="Dest Port">
-            <input type="number" id="sid" placeholder="sid">
-            <input type="number" id="rev" placeholder="rev num">
-        </div>
-        <div class="row">
-            <input type="text" id="msg" placeholder="Rule Message ( \ Escape special characters)">
-            
-            <input type="text" id="class_type" placeholder="Class-Type">
-            <select id="priority">
-                <option value="">Priority</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-            </select>
-            <input type="number" id="gid" placeholder="gid">
-        </div>
-        <div class="section">
-            <div class="row">
-                <div id="tcp_field" style="display: none;">TCP
-                    <select id="http_request_method" onchange="toggleHttpFields()">
-                        <option value="">HTTP REQUEST METHOD</option>
-                        <option value="GET">GET</option>
-                        <option value="POST">POST</option>
-                        <option value="HEAD">HEAD</option>
-                        <option value="TRACE">TRACE</option>
-                        <option value="PUT">PUT</option>
-                        <option value="DELETE">DELETE</option>
-                        <option value="CONNECT">CONNECT</option>
-                    </select>
-                    <input type="text" id="http_response_code" placeholder="HTTP RESPONSE CODE" onchange="toggleHttpFields()">
-                    <label><input type="checkbox" id="ack"> ACK</label>
-                    <label><input type="checkbox" id="syn"> SYN</label>
-                    <label><input type="checkbox" id="psh"> PSH</label>
-                    <label><input type="checkbox" id="rst"> RST</label>
-                    <label><input type="checkbox" id="fin"> FIN</label>
-                    <label><input type="checkbox" id="urg"> URG</label>
-
-                    <select id="tcp_direction" onchange="toggleTCPState()">
-                        <option value="">DIRECTION</option>
-                        <option value="from_server">from_server</option>
-                        <option value="to_server">to_server</option>
-                        <option value="from_client">from_client</option>
-                        <option value="to_client">to_client</option>
-                    </select>
-
-                    <select id="tcp_state" disabled>
-                        <option value="">TCP STATE</option>
-                        <option value="established">established</option>
-                        <option value="stateless">stateless</option>
-                        <option value="not_established">not_established</option>
-                    </select>
-                    
-                </div>
-
-                <div id="udp_field" style="display: none;">UDP
-                    <select id="udp_direction">
-                        <option value="">DIRECTION</option>
-                        <option value="from_server">from_server</option>
-                        <option value="to_server">to_server</option>
-                        <option value="from_client">from_client</option>
-                        <option value="to_client">to_client</option>
+    <div class="container mt-4">
+        <div class="section mb-4">
+            <h3 class="mb-4">Customize your rules</h3>
+            <div class="form-group row">
+                <div class="col">
+                    <select id="action" class="form-control">
+                        <option value="">Action</option>
+                        <option value="alert">alert</option>
+                        <option value="log">log</option>
+                        <option value="pass">pass</option>
+                        <option value="drop">drop</option>
+                        <option value="reject">reject</option>
                     </select>
                 </div>
-
-                <div id="icmp_field" style="display: none;">ICMP
-                    <select id="itype">
-                        <option value="">ICMP TYPE</option>
-                        <option value=">">></option>
-                        <option value="<"><</option>
-                        <option value="=">=</option>
+                <div class="col">
+                    <select id="protocol" class="form-control" onchange="updateFields()">
+                        <option value="">Protocol</option>
+                        <option value="tcp">tcp</option>
+                        <option value="icmp">icmp</option>
+                        <option value="udp">udp</option>
                     </select>
-                    <input type="number" id="itype_value" placeholder="VALUE TYPE">
-                    <select id="icode">
-                        <option value="">ICMP CODE</option>
-                        <option value=">">></option>
-                        <option value="<"><</option>
-                        <option value="=">=</option>
-                    </select>
-                    <input type="number" id="icode_value" placeholder="VALUE CODE">
                 </div>
             </div>
-            <div class="row">
-                <select id="data_size">
-                    <option value="">Data Size</option>
-                    <option value=">">></option>
-                    <option value="<"><</option>
-                    <option value="=">=</option>
-                </select>
-                <input type="number" id="data_size_value" placeholder="VALUE SIZE">
+
+            <div class="form-group row">
+                <div class="col">
+                    <input type="text" id="src_ip" class="form-control" placeholder="Source IP">
+                </div>
+                <div class="col">
+                    <input type="text" id="src_port" class="form-control" placeholder="Source Port">
+                </div>
+                <div class="col">
+                    <input type="text" id="dest_ip" class="form-control" placeholder="Dest IP">
+                </div>
+                <div class="col">
+                    <input type="text" id="dest_port" class="form-control" placeholder="Dest Port">
+                </div>
             </div>
-            <div class="row">
-                <select id="reference">
-                    <option value="">Reference</option>
-                    <option value="url">URL</option>
-                    <option value="cve">CVE</option>
-                    <option value="bug">BUG</option>
-                    <option value="msb">MSB</option>
-                    <option value="ness">NESS</option>
-                    <option value="arac">ARAC</option>
-                    <option value="osvd">OSVD</option>
-                    <option value="mcaf">MCAF</option>
-                </select>
-                <input type="text" id="reference_value" placeholder="VALUE REFERENCE">
-            </div>
-            <div class="row">
-                <select id="threshold_tracking_type">
-                    <option value="">Threshold Tracking Type</option>
-                    <option value="limit">limit</option>
-                    <option value="threshold">threshold</option>
-                    <option value="both">both</option>
-                </select>
-                <select id="trk_by">
-                    <option value="">TRK BY</option>
-                    <option value="by_src">by_src</option>
-                    <option value="by_dst">by_dst</option>
-                </select>
-                <input type="number" id="count" placeholder="Count #">
-                <input type="number" id="seconds" placeholder="Seconds">
+
+            <div class="form-group row">
+                <div class="col">
+                    <input type="number" id="sid" class="form-control" placeholder="sid">
+                </div>
+                <div class="col">
+                    <input type="number" id="rev" class="form-control" placeholder="rev num">
+                </div>
+                <div class="col">
+                    <input type="number" id="gid" class="form-control" placeholder="gid">
+                </div>
             </div>
 
             <div class="form-group">
-                <button type="button" class="btn btn-primary" onclick="generateSnortRule()">Generate Rule</button>
-                <button type="button" class="btn btn-success ml-2" onclick="saveRuleToFile()">Save Rule to File</button>
+                <input type="text" id="msg" class="form-control"
+                    placeholder="Rule Message ( \ Escape special characters)">
             </div>
-        </form>
 
-        <div class="output" id="ruleOutput">
-            <!-- Snort rule will be generated here -->
+            <div class="form-group row">
+                <div class="col">
+                    <input type="text" id="class_type" class="form-control" placeholder="Class-Type">
+                </div>
+                <div class="col">
+                    <select id="priority" class="form-control">
+                        <option value="">Priority</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+            </div>
+            <div class="protocol-fields">
+                <!-- TCP Fields -->
+                <div class="row">
+                    <div id="tcp_field" class="protocol-section" style="display: none;">
+                        <h5 class="mb-3">TCP Options</h5>
+                        <div class="form-group row">
+                            <div class="col">
+                                <select id="http_request_method" class="form-control" onchange="toggleHttpFields()">
+                                    <option value="">HTTP REQUEST METHOD</option>
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="HEAD">HEAD</option>
+                                    <option value="TRACE">TRACE</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="DELETE">DELETE</option>
+                                    <option value="CONNECT">CONNECT</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <input type="text" id="http_response_code" class="form-control"
+                                    placeholder="HTTP RESPONSE CODE" onchange="toggleHttpFields()">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="tcp-flags">
+                                <label class="mr-3"><input type="checkbox" id="ack"> ACK</label>
+                                <label class="mr-3"><input type="checkbox" id="syn"> SYN</label>
+                                <label class="mr-3"><input type="checkbox" id="psh"> PSH</label>
+                                <label class="mr-3"><input type="checkbox" id="rst"> RST</label>
+                                <label class="mr-3"><input type="checkbox" id="fin"> FIN</label>
+                                <label class="mr-3"><input type="checkbox" id="urg"> URG</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col">
+                                <select id="tcp_direction" class="form-control" onchange="toggleTCPState()">
+                                    <option value="">DIRECTION</option>
+                                    <option value="from_server">from_server</option>
+                                    <option value="to_server">to_server</option>
+                                    <option value="from_client">from_client</option>
+                                    <option value="to_client">to_client</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <select id="tcp_state" class="form-control" disabled>
+                                    <option value="">TCP STATE</option>
+                                    <option value="established">established</option>
+                                    <option value="stateless">stateless</option>
+                                    <option value="not_established">not_established</option>
+                                </select>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div id="udp_field" class="protocol-section" style="display: none;">
+
+                    <h5 class="mb-3">UDP Options</h5>
+                    <div class="form-group row">
+                        <div class="col">
+                            <select id="udp_direction" class="form-control">
+                                <option value="">DIRECTION</option>
+                                <option value="from_server">from_server</option>
+                                <option value="to_server">to_server</option>
+                                <option value="from_client">from_client</option>
+                                <option value="to_client">to_client</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+                <div id="icmp_field" class="protocol-section" style="display: none;">
+                    <h5 class="mb-3">ICMP Options</h5>
+                    <div class="form-group row">
+                        <div class="col">
+                            <select id="itype" class="form-control">
+                                <option value="">ICMP TYPE</option>
+                                <option value=">">></option>
+                                <option value="<">
+                                    << /option>
+                                <option value="=">=</option>
+                            </select>
+                        </div>
+                        <div class="col">
+                            <input type="number" id="itype_value" placeholder="VALUE TYPE">
+                        </div>
+                        <div class="col">
+                            <select id="icode" class="form-control">
+                                <option value="">ICMP CODE</option>
+                                <option value=">">></option>
+                                <option value="<">
+                                    << /option>
+                                <option value="=">=</option>
+                            </select>
+
+                        </div>
+                        <div class="col">
+                            <input type="number" id="icode_value" placeholder="VALUE CODE">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col">
+                    <select id="data_size">
+                        <option value="">Data Size</option>
+                        <option value=">">></option>
+                        <option value="<">
+                            << /option>
+                        <option value="=">=</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <input type="number" id="data_size_value" placeholder="VALUE SIZE">
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col">
+                    <select id="reference">
+                        <option value="">Reference</option>
+                        <option value="url">URL</option>
+                        <option value="cve">CVE</option>
+                        <option value="bug">BUG</option>
+                        <option value="msb">MSB</option>
+                        <option value="ness">NESS</option>
+                        <option value="arac">ARAC</option>
+                        <option value="osvd">OSVD</option>
+                        <option value="mcaf">MCAF</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <input type="text" id="reference_value" placeholder="VALUE REFERENCE">
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col">
+                    <select id="threshold_tracking_type">
+                        <option value="">Threshold Tracking Type</option>
+                        <option value="limit">limit</option>
+                        <option value="threshold">threshold</option>
+                        <option value="both">both</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <select id="trk_by">
+                        <option value="">TRK BY</option>
+                        <option value="by_src">by_src</option>
+                        <option value="by_dst">by_dst</option>
+                    </select>
+                </div>
+                <div class="col">
+                    <input type="number" id="count" placeholder="Count #">
+
+                </div>
+                <div class="col">
+                    <input type="number" id="seconds" placeholder="Seconds">
+                </div>
+            </div>
+            <!-- Rule Output and Buttons -->
+            <div class="action-buttons mt-4">
+                <button type="button" class="btn btn-primary mr-2" onclick="generateSnortRule()">Generate Rule</button>
+                <button type="button" class="btn btn-success" onclick="saveRuleToFile()">Save Rule to File</button>
+            </div>
+
+            <div class="output mt-3" id="ruleOutput">
+                <!-- Snort rule will be generated here -->
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="rules-table-section mt-4">
+                <h3>Ruleset Status</h3>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Rulels number</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rulesTableBody">
+                        <!-- Table rows will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <!-- Include Bootstrap JS dependencies before closing body tag -->
@@ -171,7 +283,7 @@
         function toggleTCPState() {
             const direction = document.getElementById('tcp_direction').value;
             const tcpState = document.getElementById('tcp_state');
-            
+
             // Enable tcpState dropdown if a direction is selected, otherwise disable it
             tcpState.disabled = direction === '';
         }
@@ -190,17 +302,17 @@
             const udp = document.getElementById('udp_field');
             const icmp = document.getElementById('icmp_field');
             if (protocol === 'tcp') {
-                tcp.style.display='block';
-                udp.style.display='none';
-                icmp.style.display='none';
+                tcp.style.display = 'block';
+                udp.style.display = 'none';
+                icmp.style.display = 'none';
             } else if (protocol === 'udp') {
-                tcp.style.display='none';
-                udp.style.display='block';
-                icmp.style.display='none';
+                tcp.style.display = 'none';
+                udp.style.display = 'block';
+                icmp.style.display = 'none';
             } else if (protocol === 'icmp') {
-                tcp.style.display='none';
-                udp.style.display='none';
-                icmp.style.display='block';
+                tcp.style.display = 'none';
+                udp.style.display = 'none';
+                icmp.style.display = 'block';
             }
         }
 
@@ -281,7 +393,7 @@
 
             // Full rule syntax
             const snortRule = `${action} ${protocol} ${srcIp} ${srcPort} -> ${destIp} ${destPort} ${ruleOptions}`;
-            
+
             // Display generated rule in output div
             document.getElementById('ruleOutput').innerText = snortRule;
         }
@@ -292,21 +404,73 @@
             fetch('/save-rule/', {
                 method: 'POST',
                 headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
                 body: new URLSearchParams({ rule: rule }),
             })
-            .then(response => {
-                if (!response.ok) {
-                    console.error('Error saving rule:', response);
-                } else {
-                    return response.json();
-                }
-            })
-            .then(data => console.log(data))
-            .catch(error => console.error('Fetch error:', error));
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Error saving rule:', response);
+                    } else {
+                        return response.json();
+                    }
+                })
+                .then(data => console.log(data))
+                .catch(error => console.error('Fetch error:', error));
 
         }
+    </script>
+    <!--  -->
+    <script>
+        function loadRulesetStatus() {
+            fetch('/get-ruleset-status/')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('rulesTableBody');
+                    tableBody.innerHTML = '';
+
+                    data.forEach(rule => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                        <td>${rule.name}</td>
+                        <td><span class="badge ${rule.status ? 'badge-success' : 'badge-danger'}">
+                            ${rule.status ? 'Enabled' : 'Disabled'}
+                        </span></td>
+                        <td>${rule.count}</td>
+                        <td>
+                            <button onclick="toggleRuleStatus('${rule.name}')" 
+                                    class="btn btn-sm ${rule.status ? 'btn-danger' : 'btn-success'}">
+                                ${rule.status ? 'Disable' : 'Enable'}
+                            </button>
+                        </td>
+                    `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error loading ruleset status:', error));
+        }
+
+        function toggleRuleStatus(ruleName) {
+            fetch('/toggle-rule-status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ rule_name: ruleName })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadRulesetStatus(); // Refresh the table
+                    } else {
+                        alert('Error toggling rule status: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Load ruleset status when page loads
+        document.addEventListener('DOMContentLoaded', loadRulesetStatus);
     </script>
 </body>
 

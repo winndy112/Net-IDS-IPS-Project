@@ -6,3 +6,4 @@ asyncio
 pathlib
 websockets
 daphne
+requests

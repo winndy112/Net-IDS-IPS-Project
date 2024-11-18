@@ -36,4 +36,6 @@ urlpatterns = [
     path('misp-extension/', views.misp_extension, name='misp_extension'),
     path('start-schedule-misp/', views.start_schedule_misp, name='start_schedule_misp'),
     path('export-event/', views.export_event, name='export_event'),
+    path('get-ruleset-status/', views.get_ruleset_status, name='get_ruleset_status'),
+    path('toggle-rule-status/', views.toggle_rule_status, name='toggle_rule_status'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
