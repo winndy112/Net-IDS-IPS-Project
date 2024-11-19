@@ -14,6 +14,9 @@ import os
 from pathlib import Path
 import requests
 import urllib3
+from dotenv import load_dotenv
+import os
+# Load environment variables from .env file
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 base_dir = Path(__file__).resolve().parent.parent.parent
@@ -28,6 +31,7 @@ global_ids_pid = None
 global_ips_pid = None
 ruleset_dir = "/usr/local/etc/rules/"
 snort_conf_path = '/usr/local/etc/snort/snort.lua'
+load_dotenv()
 
 def homepage(request):
     return render(request, 'dashboard/homepage.html')
@@ -392,9 +396,8 @@ def get_tag_id(tag_name, headers, misp_url, verify_cert):
 def start_schedule_misp(request):
     global ruleset_dir
     try:
-        MISP_URL = "https://misp.local"
-        # API_KEY = "19phcV91enGZloqR2i5eE7J0iFCqaOtOXEkJFFK8" ### thùy
-        API_KEY = "a7nWtcIxhwmJuZZR7sXce0BJ96ST0h3ehLZCMpNB" ### quanh
+        MISP_URL = os.getenv('MISP_URL', 'https://localhost')
+        API_KEY = os.getenv('API_KEY')
         VERIFY_CERT = False
 
         headers = {
@@ -511,9 +514,9 @@ def export_event(request):
         if not event_id:
             return JsonResponse({'error': 'Event ID is required'}, status=400)
 
-        MISP_URL = "https://misp.local"
-        # API_KEY = "19phcV91enGZloqR2i5eE7J0iFCqaOtOXEkJFFK8" ### thùy
-        API_KEY = "a7nWtcIxhwmJuZZR7sXce0BJ96ST0h3ehLZCMpNB" ### quanh
+        MISP_URL = os.getenv('MISP_URL', 'https://localhost') 
+
+        API_KEY = os.getenv('API_KEY')
         VERIFY_CERT = False
 
         headers = {
