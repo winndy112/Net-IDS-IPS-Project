@@ -442,6 +442,12 @@ def start_schedule_misp(request):
                 "returnFormat": "snort",
                 "page": 1
             }
+            threat_level_dict = {
+                    "1": "High",
+                    "2": "Medium",
+                    "3": "Low",
+                    "4": "Unknown"
+                }
 
             response = requests.post(attributes_url, headers=headers, json=attributes_data, verify=VERIFY_CERT)
             if response.status_code == 200:
@@ -455,19 +461,20 @@ def start_schedule_misp(request):
                         os.makedirs(output_dir)
 
                     # Write to categorized rules file
-                    file_name = f"{event_category}.rules"
-                    file_path = os.path.join(output_dir, file_name)
+                    cate_file_name = f"{event_category}.rules"
+                    file_path = os.path.join(output_dir, cate_file_name)
                     with open(file_path, 'a') as file:
                         file.write("\n".join(rules) + "\n")
 
                     # If high threat, also write to ips.rules with "drop"
+                    ips_file_name = None
+                    
                     if is_high_threat:
                         ips_file_name = "ips.rules"
                         ips_file_path = os.path.join(output_dir, ips_file_name)
                         drop_rules = [line.replace("alert", "drop", 1) for line in rules]
                         with open(ips_file_path, 'a') as file:
                             file.write("\n".join(drop_rules) + "\n")
-
                     # Get the tag ID for 'exported'
                     tag_id = os.getenv('EXPORTED_TAG_ID')
                     if not tag_id:
@@ -477,9 +484,15 @@ def start_schedule_misp(request):
                     tag_response = requests.post(tag_url, headers=headers, verify=VERIFY_CERT)
                     if tag_response.status_code != 200:
                         return JsonResponse({'error': f"Failed to tag event as exported: {tag_response.status_code} - {tag_response.text}"}, status=tag_response.status_code)
-
-                    return JsonResponse({
-                        'message': f'{rule_count} Snort rules from event ID {event_id} appended to file {file_name}',
+                    
+                    if ips_file_name is None:
+                        return JsonResponse({
+                            'message': f'{rule_count} Snort rules from event ID {event_id} (Threat level: {threat_level_dict[str(threat_level)]}) appended to file {cate_file_name}',
+                            'file_path': file_path
+                        }, status=200)
+                    else:
+                        return JsonResponse({
+                        'message': f'{rule_count} Snort rules from event ID {event_id} (Threat level: {threat_level_dict[str(threat_level)]}) appended to file {cate_file_name} and {ips_file_name}' ,
                         'file_path': file_path
                     }, status=200)
                 else:
@@ -537,6 +550,12 @@ def export_event(request):
                 print("Event Category:", event_category)
 
                 # Check if the event has a high threat model
+                threat_level_dict = {
+                    "1": "High",
+                    "2": "Medium",
+                    "3": "Low",
+                    "4": "Unknown"
+                }
                 threat_level = event_data['Event'].get('threat_level_id')
                 is_high_threat = threat_level == '1'  # Assuming '1' indicates high threat
 
@@ -561,12 +580,13 @@ def export_event(request):
                             os.makedirs(output_dir)
 
                         # Write to categorized rules file
-                        file_name = f"{event_category}.rules"
-                        file_path = os.path.join(output_dir, file_name)
+                        cate_file_name = f"{event_category}.rules"
+                        file_path = os.path.join(output_dir, cate_file_name)
                         with open(file_path, 'a') as file:
                             file.write("\n".join(rules) + "\n")
 
                         # If high threat, also write to ips.rules with "drop"
+                        ips_file_name = None
                         if is_high_threat:
                             ips_file_name = "ips.rules"
                             ips_file_path = os.path.join(output_dir, ips_file_name)
@@ -584,9 +604,14 @@ def export_event(request):
                         tag_response = requests.post(tag_url, headers=headers, verify=VERIFY_CERT)
                         if tag_response.status_code != 200:
                             return JsonResponse({'error': f"Failed to tag event as exported: {tag_response.status_code} - {tag_response.text}"}, status=tag_response.status_code)
-
-                        return JsonResponse({
-                            'message': f'{rule_count} Snort rules from event ID {event_id} appended to file {file_name}',
+                        if ips_file_name is None:
+                            return JsonResponse({
+                                'message': f'{rule_count} Snort rules from event ID {event_id} (Threat level: {threat_level_dict[str(threat_level)]}) appended to file {cate_file_name}',
+                                'file_path': file_path
+                            }, status=200)
+                        else:
+                            return JsonResponse({
+                            'message': f'{rule_count} Snort rules from event ID {event_id} (Threat level: {threat_level_dict[str(threat_level)]}) appended to file {cate_file_name} and {ips_file_name}' ,
                             'file_path': file_path
                         }, status=200)
                     else:
