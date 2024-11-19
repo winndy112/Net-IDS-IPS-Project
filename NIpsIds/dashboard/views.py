@@ -464,8 +464,7 @@ def start_schedule_misp(request):
                         file.write("\n".join(rules) + "\n")
                     print("ok")
                     # Get the tag ID for 'exported'
-                    # tag_id = 1985 ### thùy
-                    tag_id = 1991 ### quanh
+                    tag_id = os.getenv('EXPORTED_TAG_ID')
                     if not tag_id:
                         return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
                     # Tag the event as exported
@@ -480,7 +479,7 @@ def start_schedule_misp(request):
                     }, status=200)
                     
                 else:
-                    tag_id = 1985
+                    tag_id = os.getenv('EXPORTED_TAG_ID')
                     if not tag_id:
                         return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
                     # Tag the event as exported
@@ -568,7 +567,7 @@ def export_event(request):
                             file.write("\n".join(rules) + "\n")
                         
                         # Get the tag ID for 'exported'
-                        tag_id = 1985
+                        tag_id = os.getenv('EXPORTED_TAG_ID')
                         if not tag_id:
                             return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
 
@@ -584,7 +583,7 @@ def export_event(request):
                         }, status=200)
                     else:
                         # Get the tag ID for 'exported'
-                        tag_id = 1985
+                        tag_id = os.getenv('EXPORTED_TAG_ID')
                         if not tag_id:
                             return JsonResponse({'error': 'Failed to find tag ID for "exported"'}, status=500)
 
@@ -670,7 +669,7 @@ def check_rule_status(file_path):
             content = f.read()
             # Check if the include line for this rule is commented out
             rule_include = f'include = "{file_path}"' 
-            return rule_include in content and not f'-- {rule_include}' in content
+            return rule_include in content and not f'    -- {rule_include}' in content
     except Exception:
         return False
 
@@ -694,10 +693,11 @@ def toggle_rule_status(request):
             if rule_name in line:
                 if line.strip().startswith('--'):
                     # Uncomment the line
-                    lines[i] = line.lstrip('-- ')
+                    lines[i] = '    ' + line[7:]
                 else:
                     # Comment out the line
-                    lines[i] = '-- ' + line
+                    lines[i] = line[:4] + '-- ' + line[4:]
+                    print(lines[i])
                 
                 # Write changes back to file
                 with open(snort_conf_path, 'w') as f:
