@@ -450,19 +450,24 @@ def start_schedule_misp(request):
                 rule_count = len(rules)
 
                 if rule_count > 0:
-                    if is_high_threat:
-                        file_name = "ips.rules"
-                        rules = [line.replace("alert", "drop", 1) for line in rules]
-                    else:
-                        file_name = f"{event_category}.rules"
-
                     output_dir = os.path.join(ruleset_dir, 'misp-result')
                     if not os.path.exists(output_dir):
                         os.makedirs(output_dir)
+
+                    # Write to categorized rules file
+                    file_name = f"{event_category}.rules"
                     file_path = os.path.join(output_dir, file_name)
                     with open(file_path, 'a') as file:
                         file.write("\n".join(rules) + "\n")
-                    print("ok")
+
+                    # If high threat, also write to ips.rules with "drop"
+                    if is_high_threat:
+                        ips_file_name = "ips.rules"
+                        ips_file_path = os.path.join(output_dir, ips_file_name)
+                        drop_rules = [line.replace("alert", "drop", 1) for line in rules]
+                        with open(ips_file_path, 'a') as file:
+                            file.write("\n".join(drop_rules) + "\n")
+
                     # Get the tag ID for 'exported'
                     tag_id = os.getenv('EXPORTED_TAG_ID')
                     if not tag_id:
@@ -472,12 +477,11 @@ def start_schedule_misp(request):
                     tag_response = requests.post(tag_url, headers=headers, verify=VERIFY_CERT)
                     if tag_response.status_code != 200:
                         return JsonResponse({'error': f"Failed to tag event as exported: {tag_response.status_code} - {tag_response.text}"}, status=tag_response.status_code)
-                    
+
                     return JsonResponse({
                         'message': f'{rule_count} Snort rules from event ID {event_id} appended to file {file_name}',
                         'file_path': file_path
                     }, status=200)
-                    
                 else:
                     tag_id = os.getenv('EXPORTED_TAG_ID')
                     if not tag_id:
@@ -488,7 +492,6 @@ def start_schedule_misp(request):
                     return JsonResponse({'message': f'No valid Snort rules from event ID {event_id} to append'}, status=200)
             else:
                 return JsonResponse({'error': f"Error exporting event: {response.status_code} - {response.text}"}, status=response.status_code)
-                
 
         event = get_latest_event(MISP_URL, headers, VERIFY_CERT)
         if event:
@@ -553,19 +556,24 @@ def export_event(request):
                     rule_count = len(rules)
 
                     if rule_count > 0:
-                        if is_high_threat:
-                            file_name = "ips.rules"
-                            rules = [line.replace("alert", "drop", 1) for line in rules]
-                        else:
-                            file_name = f"{event_category}.rules"
-
                         output_dir = os.path.join(ruleset_dir, 'misp-result')
                         if not os.path.exists(output_dir):
                             os.makedirs(output_dir)
+
+                        # Write to categorized rules file
+                        file_name = f"{event_category}.rules"
                         file_path = os.path.join(output_dir, file_name)
                         with open(file_path, 'a') as file:
                             file.write("\n".join(rules) + "\n")
-                        
+
+                        # If high threat, also write to ips.rules with "drop"
+                        if is_high_threat:
+                            ips_file_name = "ips.rules"
+                            ips_file_path = os.path.join(output_dir, ips_file_name)
+                            drop_rules = [line.replace("alert", "drop", 1) for line in rules]
+                            with open(ips_file_path, 'a') as file:
+                                file.write("\n".join(drop_rules) + "\n")
+
                         # Get the tag ID for 'exported'
                         tag_id = os.getenv('EXPORTED_TAG_ID')
                         if not tag_id:
@@ -576,7 +584,7 @@ def export_event(request):
                         tag_response = requests.post(tag_url, headers=headers, verify=VERIFY_CERT)
                         if tag_response.status_code != 200:
                             return JsonResponse({'error': f"Failed to tag event as exported: {tag_response.status_code} - {tag_response.text}"}, status=tag_response.status_code)
-                        
+
                         return JsonResponse({
                             'message': f'{rule_count} Snort rules from event ID {event_id} appended to file {file_name}',
                             'file_path': file_path
