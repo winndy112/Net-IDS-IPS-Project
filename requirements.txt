@@ -7,3 +7,4 @@ pathlib
 websockets
 daphne
 requests
+python-dotenv
