@@ -1,1 +1,11 @@
 django
+channels
+channels_redis
+aiofiles
+asyncio
+pathlib
+websockets
+daphne
+requests
+python-dotenv
+netifaces

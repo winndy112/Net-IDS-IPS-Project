@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MISP Extension</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .small-input {
+            max-width: 200px;
+        }
+        .medium-input {
+            max-width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h2>MISP Extension</h2>
+        <div class="form-group mt-3">
+            <label for="eventId">Event ID:</label>
+            <input type="number" class="form-control small-input" id="eventId" placeholder="Enter Event ID" min="1">
+            <button type="button" class="btn btn-primary mt-2" onclick="exportEvent()">Export Event</button>
+        </div>
+        <div class="form-group mt-3">
+            <label for="scheduleTime">Schedule Time:</label>
+            <div class="input-group medium-input">
+                <input type="number" class="form-control" id="scheduleTime" placeholder="Enter Schedule Time" min="1">
+                <div class="input-group-append">
+                    <select class="form-control" id="timeUnit">
+                        <option value="minutes">Minutes</option>
+                        <option value="hours">Hours</option>
+                        <option value="days">Days</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success mt-2" onclick="startSchedule()">Start Schedule</button>
+            <button type="button" class="btn btn-danger mt-2 ml-2" onclick="stopSchedule()">Stop Schedule</button>
+        </div>
+        <div class="mt-4">
+            <h5>Explanation:</h5>
+            <p>1. Enter the Event ID and click "Export Event" to export the snort rule for that specific event from MISP.</p>
+            <p>2. Enter the schedule time (in minutes, hours, or days) and click "Start Schedule" to randomly select an event from MISP and export the rule at the specified interval.</p>
+        </div>
+        <div class="mt-4">
+            <h5>Log:</h5>
+            <pre id="log" class="bg-light p-3 border rounded" style="max-height: 200px; overflow-y: auto; white-space: pre-wrap;"></pre>
+        </div>
+    </div>
+</body>
+<script src="{% static 'dashboard/js/misp_extension.js' %}"></script>
+
+</html>
