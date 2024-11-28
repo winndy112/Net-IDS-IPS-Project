@@ -27,7 +27,7 @@ class SnortConsoleConsumer(AsyncWebsocketConsumer):
         logger.info(f"WebSocket disconnected with code: {close_code}")
 
     async def monitor_log_file(self):
-        log_file = "log/alert_fast/alert_fast.txt"  # Adjust path as needed
+        log_file = "log/alert_fast/alert_fast.txt"
         
         try:
             # Get initial file size

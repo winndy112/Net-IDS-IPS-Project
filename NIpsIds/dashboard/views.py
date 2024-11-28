@@ -16,11 +16,12 @@ import requests
 import urllib3
 from dotenv import load_dotenv
 import os
-# Load environment variables from .env file
+from .utils import get_interfaces
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 base_dir = Path(__file__).resolve().parent.parent.parent
-# define global variables
+
 global_hours = 0
 global_interface = None 
 global_config_file = None
@@ -47,6 +48,12 @@ def open_log_analyzer(request):
 
 def misp_extension(request):
     return render(request, 'dashboard/misp_extension.html')
+
+@require_http_methods(["GET"])
+def get_interfaces_list(request):
+    interfaces = get_interfaces()
+    return JsonResponse({'interfaces': interfaces})
+
 @csrf_exempt
 def save_rule(request):
     global ruleset_dir

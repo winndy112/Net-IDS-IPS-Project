@@ -38,4 +38,5 @@ urlpatterns = [
     path('export-event/', views.export_event, name='export_event'),
     path('get-ruleset-status/', views.get_ruleset_status, name='get_ruleset_status'),
     path('toggle-rule-status/', views.toggle_rule_status, name='toggle_rule_status'),
+    path('get-interfaces/', views.get_interfaces_list, name='get_interfaces'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
