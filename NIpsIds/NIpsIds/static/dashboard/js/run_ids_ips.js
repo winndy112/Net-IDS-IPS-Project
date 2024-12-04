@@ -1,14 +1,22 @@
 const csrftoken = getCookie('csrftoken');
+function getUrls() {
+    const container = document.querySelector('.container');
+    return {
+        runSnort: container.dataset.runSnort,
+        stopIds: container.dataset.stopIds,
+        stopIps: container.dataset.stopIps,
+    }
+}
 async function startSnort(event) {
     event.preventDefault(); // Prevent form from submitting normally
+    const urls = getUrls();
 
     const hours = document.getElementById('hours').value;
     const interface = document.getElementById('interface').value;
     const configFile = document.getElementById('configFile').value;
     const captureType = document.getElementById('captureType').value;
-
     try {
-        const response = await fetch("{% url 'run_snort' %}", {
+        const response = await fetch(urls.runSnort, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -38,8 +46,9 @@ async function startSnort(event) {
 }
 
 async function stopIDS() {
+    const urls = getUrls();
     try {
-        const response = await fetch("{% url 'stop_ids' %}", {
+        const response = await fetch(urls.stopIds, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -61,8 +70,9 @@ async function stopIDS() {
     }
 }
 async function stopIPS() {
+    const urls = getUrls();
     try {
-        const response = await fetch("{% url 'stop_ips' %}", {
+        const response = await fetch(urls.stopIps, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -71,10 +81,9 @@ async function stopIPS() {
         });
 
         const data = await response.json();
-
         if (response.ok) {
             alert(data.message + " with pid: " + data.pid);
-            document.getElementById('logging').innerText += data.message + " with pid: " + data.pid; s
+            document.getElementById('logging').innerText += data.message + " with pid: " + data.pid;
         } else {
             alert('Error stopping Snort: ' + data.error);
         }
@@ -158,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 document.addEventListener('DOMContentLoaded', () => {
     const interfaceSelect = document.getElementById('interface');
-    
+
     fetch('/get-interfaces/')
         .then(response => response.json())
         .then(data => {

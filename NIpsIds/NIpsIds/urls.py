@@ -26,11 +26,13 @@ urlpatterns = [
     path('', views.homepage, name='homepage'),
     path('generate-rules/', views.generate_rules, name='generate_rules'),
     path('save-rule/', views.save_rule, name='save_rule'),
+
     path('run-ids-ips/', views.run_ids_ips, name='run_ids_ips'),
     path('run-snort/', views.run_snort, name='run_snort'),
     path('stop-ids/', views.stop_ids, name='stop_ids'),
     path('stop-ips/', views.stop_ips, name='stop_ips'),
     path('switch-to-ips/', views.switch_ids_to_ips, name='switch-to-ips'),
+    
     path('open-log-analyzer/', views.open_log_analyzer, name='open_log_analyzer'),
     path('check-snort-status/', views.check_snort_status, name='check-snort-status'),
     path('misp-extension/', views.misp_extension, name='misp_extension'),

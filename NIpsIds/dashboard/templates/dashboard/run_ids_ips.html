@@ -12,7 +12,10 @@
 </head>
 
 <body>
-    <div class="container mt-4">
+    <div class="container mt-4" 
+         data-run-snort="{% url 'run_snort' %}"
+         data-stop-ids="{% url 'stop_ids' %}"
+         data-stop-ips="{% url 'stop_ips' %}">
         <!-- Navbar -->
         <nav class="navbar navbar-light bg-light mb-4">
             <a href="{% url 'homepage' %}" class="navbar-brand">Home</a>
@@ -38,7 +41,7 @@
             </div>
             <div class="form-group">
                 <label for="captureType">Capture Type:</label>
-                <select id="captureType" name="captureType" class="form-control" required>
+                <select id="captureType" name="captureType" class="form-control" required value="IDS">
                     <option value="">Select capture type</option>
                     <option value="IDS">IDS</option>
                     <option value="IPS">IPS</option>
@@ -46,8 +49,8 @@
             </div>
             <div class="button-group mt-3">
                 <button type="submit" class="btn btn-success">Start Snort</button>
-                <button type="button" class="btn btn-danger ml-2" onclick="stopIDS()">Stop Snort-IDS</button>
-                <button type="button" class="btn btn-danger ml-2" onclick="stopIPS()">Stop Snort-IPS</button>
+                <button type="button" class="btn btn-danger ml-2" onclick="stopIDS()">Stop Snort IDS</button>
+                <button type="button" class="btn btn-danger ml-2" onclick="stopIPS()">Stop Snort IPS</button>
                 <button type="button" class="btn btn-info ml-2"
                     onclick="window.location.href='{% url 'open_log_analyzer' %}?live=true'">See Live Log</button>
             </div>

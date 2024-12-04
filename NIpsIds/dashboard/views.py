@@ -105,14 +105,15 @@ def gen_command_line(alert_path):
             ])
     elif global_capture_type =="IPS":
         command.extend([
+            '-Q',
             '--daq', global_daq_module,
             '--daq-mode', 'inline',
-            '-i', global_interface,
+            '-i', f'{global_interface}:eth1',
             '-c', global_config_file,
             '-l', alert_path,
             '-A', 'alert_fast',
-            '-k', 'none',
-            '-y',
+            # '-k', 'none',
+            # '-y',
         ])
     else:
         return JsonResponse({'error': f'Invalid Capture type'}, status=400)
@@ -130,7 +131,7 @@ def run_snort(request):
 
     # Create specific directories
     # user = os.environ.get('USER')
-    base_path = f"log"
+    base_path = "log"
     alert_path = os.path.join(base_path, "alert_fast")
     
     # Create directories with proper permissions

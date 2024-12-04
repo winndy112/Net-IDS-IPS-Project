@@ -62,43 +62,47 @@
 
         <!-- Log table with responsive wrapper -->
         <div class="table-responsive">
-            <table class="table table-striped table-hover" id="logTable">
-                <thead class="thead-dark">
-                    <tr>
-                        <th onclick="sortTable(0)" class="sortable">
-                            Timestamp <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable(1)" class="sortable">
-                            Rule ID <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable(2)" class="sortable">
-                            Alert Message <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable(3)" class="sortable">
-                            Priority <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable(4)" class="sortable">
-                            Protocol <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable(5)" class="sortable">
-                            Source IP <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable(6)" class="sortable">
-                            Source Port <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable(7)" class="sortable">
-                            Destination IP <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable(8)" class="sortable">
-                            Destination Port <span class="sort-icon">↕</span>
-                        </th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="logTableBody">
-                    <!-- Logs will be populated dynamically -->
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table class="table table-striped table-hover" id="logTable">
+                    <thead class="thead-dark sticky-header">
+                        <tr>
+                            <th onclick="sortTable(0)" class="sortable">
+                                Timestamp <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortTable(1)" class="sortable">
+                                Rule ID <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortTable(2)" class="sortable">
+                                Alert Message <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortTable(3)" class="sortable">
+                                Priority <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortTable(4)" class="sortable">
+                                Protocol <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortTable(5)" class="sortable">
+                                Source IP <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortTable(6)" class="sortable">
+                                Source Port <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortTable(7)" class="sortable">
+                                Destination IP <span class="sort-icon">↕</span>
+                            </th>
+                            <th onclick="sortTable(8)" class="sortable">
+                                Destination Port <span class="sort-icon">↕</span>
+                            </th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        <!-- Logs will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination controls -->
+            <div id="pagination" class="pagination"></div>
         </div>
 
         <!-- Add CSS -->
