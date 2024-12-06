@@ -34,7 +34,66 @@ function updateFields() {
     }
 }
 
+// Add this new validation function
+function validateRuleInputs() {
+    const errors = [];
+    
+    // Required fields validation
+    const action = document.getElementById('action').value;
+    const protocol = document.getElementById('protocol').value;
+    const sid = document.getElementById('sid').value;
+    const msg = document.getElementById('msg').value;
+
+    if (!action) errors.push("Action is required");
+    if (!protocol) errors.push("Protocol is required");
+    if (!sid) errors.push("SID is required");
+    if (!msg) errors.push("Message is required");
+
+    // IP address validation
+    const srcIp = document.getElementById('src_ip').value;
+    const destIp = document.getElementById('dest_ip').value;
+    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^any$/;
+
+    if (srcIp && srcIp !== 'any' && !ipRegex.test(srcIp)) {
+        errors.push("Invalid source IP address");
+    }
+    if (destIp && destIp !== 'any' && !ipRegex.test(destIp)) {
+        errors.push("Invalid destination IP address");
+    }
+
+    // Port validation
+    const srcPort = document.getElementById('src_port').value;
+    const destPort = document.getElementById('dest_port').value;
+    const portRegex = /^([1-9][0-9]{0,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]|any)$/;
+
+    if (srcPort && srcPort !== 'any' && !portRegex.test(srcPort)) {
+        errors.push("Invalid source port (must be 1-65535 or 'any')");
+    }
+    if (destPort && destPort !== 'any' && !portRegex.test(destPort)) {
+        errors.push("Invalid destination port (must be 1-65535 or 'any')");
+    }
+
+    // SID and Rev validation
+    if (sid && !(/^\d+$/.test(sid))) {
+        errors.push("SID must be a positive number");
+    }
+    const rev = document.getElementById('rev').value;
+    if (rev && !(/^\d+$/.test(rev))) {
+        errors.push("Revision must be a positive number");
+    }
+
+    return errors;
+}
+
+// Modify the existing generateSnortRule function to include validation
 function generateSnortRule() {
+    // Validate inputs first
+    const validationErrors = validateRuleInputs();
+    if (validationErrors.length > 0) {
+        alert('Please fix the following errors:\n' + validationErrors.join('\n'));
+        return;
+    }
+
     // Get the values from input fields
     const action = document.getElementById('action').value;
     const protocol = document.getElementById('protocol').value;
@@ -44,7 +103,9 @@ function generateSnortRule() {
     const destPort = document.getElementById('dest_port').value || 'any';
     const sid = document.getElementById('sid').value;
     const rev = document.getElementById('rev').value;
-    const msg = document.getElementById('msg').value.replace(/\\/g, '\\\\');
+    const msg = document.getElementById('msg').value;
+    // Properly escape any existing backslashes and quotes
+    const escapedMsg = msg.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     const classType = document.getElementById('class_type').value;
     const priority = document.getElementById('priority').value;
     const gid = document.getElementById('gid').value;
@@ -91,7 +152,7 @@ function generateSnortRule() {
     const seconds = document.getElementById('seconds').value;
 
     // Construct rule options
-    let ruleOptions = `(msg:"${msg}";`;
+    let ruleOptions = `(msg:"${escapedMsg}";`;
     if (classType) ruleOptions += ` classtype:${classType};`;
     if (priority) ruleOptions += ` priority:${priority};`;
     if (gid) ruleOptions += ` gid:${gid};`;
@@ -116,26 +177,44 @@ function generateSnortRule() {
     document.getElementById('ruleOutput').innerText = snortRule;
 }
 
+// Modify the existing saveRuleToFile function to include validation
 function saveRuleToFile() {
     const rule = document.getElementById('ruleOutput').innerText.trim();
-    alert(rule);
+    if (!rule) {
+        alert('Please generate a rule first');
+        return;
+    }
+
     fetch('/save-rule/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({ rule: rule }),
+        body: `rule=${encodeURIComponent(rule)}`,
     })
-        .then(response => {
-            if (!response.ok) {
-                console.error('Error saving rule:', response);
-            } else {
-                return response.json();
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert(data)
+        if (data.ok) {
+            let message = data.message || 'Rule saved successfully.';
+            if (data.needs_drop_action) {
+                message += '\nHigh priority threat detected! Rule has been automatically added to IPS rules with DROP action.';
             }
-        })
-        .then(data => console.log(data))
-        .catch(error => console.error('Fetch error:', error));
-
+            alert(message);
+            loadRulesetStatus(); // Refresh the rules table
+        } else {
+            alert('Error saving rule: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving rule: ' + error.message);
+    });
 }
 
 function loadRulesetStatus() {
