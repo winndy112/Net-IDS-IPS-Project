@@ -186,7 +186,6 @@ def run_snort(request):
                 # Process failed to start or terminated
                 stdout, stderr = process.communicate()
                 error_msg = f"Snort failed to start.\nStdout: {stdout}\nStderr: {stderr}"
-                print("DEBUG: " + error_msg)
                 return JsonResponse({'error': error_msg}, status=500)
             pid = process.pid
             if global_capture_type == "IDS":
@@ -251,7 +250,7 @@ def switch_ids_to_ips(request):
     global global_capture_type
     global global_action
     global global_ips_pid
-
+    global global_ids_pid
     try:
         pid = request.session.get('snort_ips_pid')
         if pid:
@@ -282,15 +281,25 @@ def switch_ids_to_ips(request):
 
         # Save new process PID
         global_ips_pid = process.pid
-
         request.session['snort_ips_pid'] = global_ips_pid
-
+        
+        # Terminate the IDS process
+        ids_pid = request.session.get('snort_ids_pid')
+        if ids_pid:
+            try:
+                os.kill(ids_pid, signal.SIGTERM)
+                del request.session['snort_ids_pid']
+                
+            except ProcessLookupError:
+                del request.session['snort_ids_pid']
+        global_ids_pid = None
+        
         return JsonResponse({
             'message': f'Snort successfully switched to IPS mode. IPS PID: {global_ips_pid}',
             'pid': global_ips_pid,
             'log_file': os.path.join(alert_path, "alert_fast.txt")
         }, status=200)
-
+      
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 # stop ids or ips function

@@ -58,17 +58,21 @@ daphe -b 0.0.0.0 -p 8080 NIpsIds.asgi:application
 *You can follow the installation guide [here](https://www.misp-project.org/download/) if MISP is not yet installed on your machine.*
 
 1. Set up MISP credentials in your environment:
-After successfully setting up MISP, you can go to **Administration** > **List Auth Keys** to get the API key. Then set the following environment variables:
+After successfully setting up MISP, you can go to **Administration** > **List Auth Keys** to get the API key. 
+2. After creating new tag called "exported", you go to **Event Actions** > **List Tags** to get tag ID.
+
+Then set the following environment variables:
 ```bash
-export MISP_URL="https://misp.local"
-export MISP_KEY="your_api_key"
+export MISP_URL="<your_misp_url>"
+export API_KEY="<your_api_key>"
+export EXPORTED_TAG_ID = <tag_id>
 ```
 Or or you can set the variables in the .env file under `NIpsIds/dashboards` directory like the following:
 ```bat
-MISP_URL="https://misp.local"
-MISP_KEY="your_api_key"
+MISP_URL="<your_misp_url>"
+API_KEY="<your_api_key>"
+EXPORTED_TAG_ID = <tag_id>
 ```
-
 ## License
 
 This project uses various components with MIT licenses. See individual license files in the static/admin directories for detailed licensing information.
