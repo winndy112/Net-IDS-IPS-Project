@@ -49,8 +49,14 @@
         <!-- Search and filter section -->
         <div class="row mb-3">
             <div class="form-group col-md-6">
-                <input type="text" id="search" class="form-control"
-                    placeholder="Search (mess:, id:, proto:, src:, dst:, prio:, time:)">
+                <div class="input-group">
+                    <input type="text" id="search" class="form-control" 
+                        placeholder="Search (time:, id:, mess:, proto:, src:, dst:, prio:)">
+                    <div class="input-group-append">
+                        <span class="input-group-text" id="searchCount">0 results</span>
+                    </div>
+                </div>
+                <small class="form-text text-muted">Use quotes for exact match, e.g., mess:"Invalid user"</small>
             </div>
             <div class="form-group col-md-3">
                 <input type="date" id="dateFilter" class="form-control" placeholder="Filter by date...">
@@ -161,5 +167,5 @@
 <!-- Include Bootstrap JS dependencies before closing body tag -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{% static 'dashboard/js/log_analyzer.js' %}"></script>
+<script src="{% static 'dashboard/js/log_analyzer.js' %}?v={% now 'U' %}"></script>
 </html>

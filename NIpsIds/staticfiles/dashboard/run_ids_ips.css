@@ -4,6 +4,7 @@ body {
     margin: 0;
     padding: 20px;
 }
+
 .container {
     max-width: 1000px;
     margin: 0 auto;
@@ -12,20 +13,24 @@ body {
     border-radius: 8px;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
 }
+
 h2 {
     text-align: center;
     color: #333;
     margin-bottom: 30px;
 }
+
 .form-group {
     margin-bottom: 20px;
 }
+
 .form-group label {
     display: block;
     font-weight: bold;
     margin-bottom: 8px;
     color: #333;
 }
+
 .form-group input[type="number"],
 .form-group input[type="text"],
 .form-group select {
@@ -37,11 +42,13 @@ h2 {
     font-family: inherit;
     font-size: 14px;
 }
+
 .button-group {
     display: flex;
     gap: 10px;
     margin-top: 30px;
 }
+
 .btn {
     flex: 1;
     padding: 12px;
@@ -53,28 +60,35 @@ h2 {
     border: none;
     color: white;
 }
+
 .btn-primary {
     background-color: #4CAF50;
 }
+
 .btn-primary:hover {
     background-color: #45a049;
 }
+
 .btn-danger {
     background-color: #dc3545;
 }
+
 .btn-danger:hover {
     background-color: #c82333;
 }
+
 select:focus,
 input:focus {
     outline: none;
     border-color: #4CAF50;
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
 }
+
 @media (max-width: 768px) {
     .container {
         padding: 15px;
     }
+
     .button-group {
         flex-direction: column;
     }

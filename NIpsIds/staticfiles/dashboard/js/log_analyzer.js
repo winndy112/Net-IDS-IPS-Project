@@ -293,16 +293,22 @@ function sortTable(columnIndex) {
 function searchLogs() {
     try {
         const searchInput = document.getElementById('search');
-        const searchText = searchInput.value.toLowerCase();
+        const searchText = searchInput.value.trim();
+        const searchTerms = parseSearchQuery(searchText);
+        let visibleCount = 0;
 
-        // Filter allTableRows instead of DOM elements
+        // Reset display state for all rows
         allTableRows.forEach(row => {
-            if (row.cells.length < 7) return;
-
-            // ...existing search logic...
-
-            row.style.display = found ? '' : 'none';
+            const matches = searchTerms.length === 0 || searchTerms.every(term => matchSearchTerm(row, term));
+            row.style.display = matches ? '' : 'none';
+            if (matches) visibleCount++;
         });
+
+        // Update search count
+        const searchCount = document.getElementById('searchCount');
+        if (searchCount) {
+            searchCount.textContent = `${visibleCount} result${visibleCount !== 1 ? 's' : ''}`;
+        }
 
         // Reset to first page and update pagination
         currentPage = 1;
@@ -312,8 +318,80 @@ function searchLogs() {
     }
 }
 
-// Update the search input placeholder to show available dorks
-document.getElementById('search').placeholder = "Search (use: mess:, id:, proto:, src:, dst:, prio:, time:)";
+function parseSearchQuery(query) {
+    if (!query) return [];
+    
+    const terms = [];
+    let currentTerm = '';
+    let inQuotes = false;
+
+    // Split query into terms, respecting quoted phrases
+    for (let i = 0; i < query.length; i++) {
+        if (query[i] === '"') {
+            inQuotes = !inQuotes;
+            continue;
+        }
+        if (query[i] === ' ' && !inQuotes) {
+            if (currentTerm) {
+                terms.push(currentTerm.trim());
+                currentTerm = '';
+            }
+        } else {
+            currentTerm += query[i];
+        }
+    }
+    if (currentTerm) {
+        terms.push(currentTerm.trim());
+    }
+
+    return terms.map(term => {
+        const dorkMap = {
+            'time:': 0,
+            'id:': 1,
+            'mess:': 2,
+            'prio:': 3,
+            'proto:': 4,
+            'src:': 5,
+            'srcport:': 6,
+            'dst:': 7,
+            'dstport:': 8
+        };
+
+        for (const [dork, column] of Object.entries(dorkMap)) {
+            if (term.toLowerCase().startsWith(dork)) {
+                return {
+                    column,
+                    value: term.substring(dork.length).toLowerCase(),
+                    exact: term.includes('"')
+                };
+            }
+        }
+
+        return {
+            column: -1,
+            value: term.toLowerCase(),
+            exact: term.includes('"')
+        };
+    });
+}
+
+function matchSearchTerm(row, term) {
+    if (!row.cells || row.cells.length === 0) return false;
+
+    const value = term.value.replace(/^"|"$/g, '');
+
+    if (term.column === -1) {
+        // Search all columns
+        return Array.from(row.cells).some(cell => {
+            const cellText = (cell.textContent || '').toLowerCase();
+            return term.exact ? cellText === value : cellText.includes(value);
+        });
+    } else {
+        // Search specific column
+        const cellText = (row.cells[term.column].textContent || '').toLowerCase();
+        return term.exact ? cellText === value : cellText.includes(value);
+    }
+}
 
 function getCookie(name) {
     let cookieValue = null;
@@ -412,3 +490,23 @@ function startStreaming() {
 // Check status every 5 seconds
 checkSnortStatus();
 setInterval(checkSnortStatus, 5000);
+
+// Initialize search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(searchLogs, 300));
+    }
+});
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}

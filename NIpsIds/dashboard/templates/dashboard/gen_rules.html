@@ -280,6 +280,6 @@
 <!-- Include Bootstrap JS dependencies before closing body tag -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{% static 'dashboard/js/gen_rules.js' %}"></script>
+<script src="{% static 'dashboard/js/gen_rules.js' %}?v={% now 'U' %}"></script>
 
 </html>
