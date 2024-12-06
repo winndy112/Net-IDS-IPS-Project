@@ -288,34 +288,85 @@ def run_snort(request):
             # Start output monitoring thread
             def monitor_output():
                 channel_layer = get_channel_layer()
+                retry_count = 0
+                max_retries = 30
+                buffer_size = 4096  # Optimal buffer size for reading
+                last_check = time.time()
+                check_interval = 0.05  # 50ms interval for process checks
+
+                # Wait for log file with exponential backoff
                 while not os.path.exists(log_file_path):
-                    time.sleep(1)
-                
-                with open(log_file_path, 'r') as f:
-                    while True:
-                        line = f.readline()
-                        if not line:
-                            time.sleep(0.1)
-                            continue
-                        # print(f"Alert: {line.strip()}")
-                        # Send alert through WebSocket
-                        asyncio.run(channel_layer.group_send(
-                            "snort_console",
-                            {
-                                "type": "send_console_output",
-                                "output": line.strip()
-                            }
-                        ))
+                    if retry_count >= max_retries:
+                        print(f"Error: Log file {log_file_path} not found after {max_retries} attempts")
+                        return
+                    time.sleep(min(0.1 * (2 ** retry_count), 1.0))  # Exponential backoff with max 1 second
+                    retry_count += 1
+
+                try:
+                    # Use buffered IO for better performance
+                    with open(log_file_path, 'r', buffering=buffer_size) as f:
+                        # Seek to end of file
+                        f.seek(0, 2)
+                        
+                        # Batch process alerts
+                        pending_alerts = []
+                        max_batch_size = 10
+                        
+                        while True:
+                            # Process available lines
+                            while len(pending_alerts) < max_batch_size:
+                                line = f.readline()
+                                if not line:
+                                    break
+                                pending_alerts.append(line.strip())
+
+                            # Send batch of alerts if available
+                            if pending_alerts:
+                                asyncio.run(channel_layer.group_send(
+                                    "snort_console",
+                                    {
+                                        "type": "send_console_output",
+                                        "output": pending_alerts
+                                    }
+                                ))
+                                pending_alerts = []
+
+                            # Check process status periodically instead of every iteration
+                            current_time = time.time()
+                            if current_time - last_check >= check_interval:
+                                if global_ids_pid is None and global_ips_pid is None:
+                                    break
+                                last_check = current_time
+
+                            # Adaptive sleep based on activity
+                            if not pending_alerts:
+                                time.sleep(0.05)  # Sleep longer when inactive
+                            else:
+                                time.sleep(0.01)  # Sleep less when active
+
+                except FileNotFoundError:
+                    print(f"Error: Log file {log_file_path} was removed")
+                except Exception as e:
+                    print(f"Error monitoring log file: {str(e)}")
+                finally:
+                    # Flush any remaining alerts
+                    if pending_alerts:
+                        try:
+                            asyncio.run(channel_layer.group_send(
+                                "snort_console",
+                                {
+                                    "type": "send_console_output",
+                                    "output": pending_alerts
+                                }
+                            ))
+                        except Exception:
+                            pass
 
             monitor_thread = threading.Thread(target=monitor_output, daemon=True)
             monitor_thread.start()
 
             # Start timer thread
-            timer_thread = threading.Thread(
-                target=stop_snort_after_hours,
-                args=(process.pid, global_hours),
-                daemon=True
-            )
+            timer_thread = threading.Thread(target=stop_snort_after_hours, args=(process.pid, global_hours), daemon=True)
             timer_thread.start()
             
             return JsonResponse({
