@@ -164,9 +164,11 @@ def gen_command_line(alert_path):
     global global_config_file
     global global_capture_type
     global global_action
-    command = ['sudo', 'snort']  # Add sudo
+    command = ['snort']  # Add sudo
     # print(f"Capture type: {global_capture_type}") 
     if global_capture_type == "IDS":
+        if global_ids_pid:
+            return "false"
         command.extend([
                 '-i', global_interface,
                 '-c', global_config_file,
@@ -176,6 +178,8 @@ def gen_command_line(alert_path):
                 '-y',
             ])
     elif global_capture_type =="IPS":
+        if global_ips_pid:
+            return "false"
         command.extend([
             '-Q',
             '--daq', global_daq_module,
@@ -193,13 +197,9 @@ def gen_command_line(alert_path):
 
 @require_http_methods(["POST"])
 def run_snort(request):
-    global global_hours
-    global global_interface
-    global global_config_file
-    global global_capture_type
-    global global_action
-    global global_ids_pid
-    global global_ips_pid
+    global global_hours, global_interface, global_config_file
+    global global_capture_type, global_action
+    global global_ids_pid, global_ips_pid
 
     # Create specific directories
     # user = os.environ.get('USER')
@@ -226,8 +226,10 @@ def run_snort(request):
 
         # Modified Snort command
         command = gen_command_line(alert_path)
-        # command = ['snort']
-        # Debug info
+        # prevent dupplicate snort process
+        if command == "false":
+            return JsonResponse({'error': 'Snort is already running'}, status=400)
+    
         print(f"Alert/Log directory path: {log_file_path}")
         print(f"Received parameters: hours={global_hours}, interface={global_interface}, config={global_config_file}, type={global_capture_type}, action={global_action}")
         print(f"Command: {' '.join(command)}")
@@ -243,34 +245,46 @@ def run_snort(request):
                 print("Snort version check...", test.stdout)
             except subprocess.CalledProcessError as e:
                 return JsonResponse({'error': f'Snort not available: {str(e)}'}, status=500)
-
-            # Start Snort with output capture
+            # Create a new session for the process
             process = subprocess.Popen(
                 command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                start_new_session=True,  # This replaces preexec_fn=os.setsid
+                bufsize=1,
+                universal_newlines=True
             )
             
             # Check immediate errors
             time.sleep(2)
             if process.poll() is not None:
-                # Process failed to start or terminated
                 stdout, stderr = process.communicate()
                 error_msg = f"Snort failed to start.\nStdout: {stdout}\nStderr: {stderr}"
                 return JsonResponse({'error': error_msg}, status=500)
-            pid = process.pid
-            if global_capture_type == "IDS":
-                global_ids_pid = pid
-                request.session['snort_ids_pid'] = pid
-            elif global_capture_type == "IPS":
-                global_ips_pid = pid
-                request.session['snort_ips_pid'] = pid
-            else:
-                print("Fail to resign PID..")
-            
-            request.session['log_file'] = log_file_path
 
+            # # Store only the main Snort process PID
+            # main_pid = None
+            # try:
+            #     # Use ps command to find the actual Snort process
+            #     ps_output = subprocess.check_output(['ps', '-o', 'pid,ppid,command', '--no-headers'], 
+            #                                      universal_newlines=True)
+            #     for line in ps_output.splitlines():
+            #         if 'snort' in line and not 'sudo' in line:
+            #             main_pid = int(line.split()[0])
+            #             break
+            # except Exception as e:
+            #     print(f"Error finding main Snort PID: {e}")
+                # main_pid = process.pid
+            # print("Test 1" + main_pid)
+            
+            if global_capture_type == "IDS":
+                global_ids_pid = process.pid
+                request.session['snort_ids_pid'] = process.pid
+            elif global_capture_type == "IPS":
+                global_ips_pid = process.pid
+                request.session['snort_ips_pid'] = process.pid
+            request.session['log_file'] = log_file_path
             # Start output monitoring thread
             def monitor_output():
                 channel_layer = get_channel_layer()
@@ -283,7 +297,7 @@ def run_snort(request):
                         if not line:
                             time.sleep(0.1)
                             continue
-                        print(f"Alert: {line.strip()}")
+                        # print(f"Alert: {line.strip()}")
                         # Send alert through WebSocket
                         asyncio.run(channel_layer.group_send(
                             "snort_console",
@@ -299,13 +313,14 @@ def run_snort(request):
             # Start timer thread
             timer_thread = threading.Thread(
                 target=stop_snort_after_hours,
-                args=(pid, global_hours),
+                args=(process.pid, global_hours),
                 daemon=True
             )
             timer_thread.start()
+            
             return JsonResponse({
                 'message': f'Snort started successfully in {global_capture_type} mode and will run for {global_hours} hours. Logging to {log_file_path}',
-                'pid': pid,
+                'pid': process.pid,
                 'log_file': log_file_path
             }, status=200)
         else: # nếu action != start 
@@ -377,22 +392,36 @@ def switch_ids_to_ips(request):
 # stop ids or ips function
 @require_http_methods(["POST"])
 def stop_ids(request):
+    global global_ids_pid
     try:
-        ids_pid = request.session.get('snort_ids_pid')
-        #print(pid)
-        if ids_pid:
+        if global_ids_pid:
+            tmp = global_ids_pid
             try:
-                os.kill(ids_pid, signal.SIGTERM)
+               # Kill process group
+                pgid = os.getpgid(global_ids_pid)
+                os.killpg(pgid, signal.SIGTERM)
+                
+                # Wait briefly and verify
+                time.sleep(1)
+                
+                # Force kill if still running
+                try:
+                    os.kill(global_ids_pid, 0)  # Check if process exists
+                    os.killpg(pgid, signal.SIGKILL)  # Force kill if still running
+                except ProcessLookupError:
+                    pass  # Process already terminated
+                
+                global_ids_pid = None
                 del request.session['snort_ids_pid']
                 return JsonResponse({
                     'message': 'Snort process stopped successfully IDS process',
-                    'pid':ids_pid
+                    'pid': tmp
                 })
             except ProcessLookupError:
                 del request.session['snort_ids_pid']
                 return JsonResponse({
                     'message': 'Snort IDS process was already terminated',
-                    'pid': ids_pid
+                    'pid': tmp
                 })
         else:
             return JsonResponse({
@@ -406,21 +435,23 @@ def stop_ids(request):
     
 @require_http_methods(["POST"])
 def stop_ips(request):
+    global global_ips_pid
     try:
-        ips_pid = request.session.get('snort_ips_pid')
-        if ips_pid:
+        if  global_ips_pid or request.session.get('snort_ips_pid'):
+            tmp = global_ips_pid
             try:
-                os.kill(ips_pid, signal.SIGTERM)
+                os.kill(global_ips_pid, signal.SIGTERM)
                 del request.session['snort_ips_pid']
+                global_ips_pid = None
                 return JsonResponse({
                     'message': 'Snort process stopped successfully IPS process',
-                    'pid': ips_pid
+                    'pid': tmp
                 })
             except ProcessLookupError:
                 del request.session['snort_ips_pid']
                 return JsonResponse({
                     'message': 'Snort IPS process was already terminated',
-                    'pid': ips_pid
+                    'pid': tmp
                 })
         else:
             return JsonResponse({
@@ -433,9 +464,7 @@ def stop_ips(request):
     
 # views.py - Update check_snort_status function
 def check_snort_status(request):
-    ids_pid = request.session.get('snort_ids_pid')
-    ips_pid = request.session.get('snort_ips_pid')
-    
+    global global_ids_pid, global_ids_pid    
     status = {
         'ids_running': False,
         'ips_running': False,
@@ -452,19 +481,19 @@ def check_snort_status(request):
         return False
 
     # Check IDS status
-    if check_process(ids_pid):
+    if check_process(global_ids_pid):
         status['ids_running'] = True
-        status['ids_pid'] = ids_pid
+        status['ids_pid'] = global_ids_pid
         status['running'] = True
-    elif ids_pid:
+    elif global_ids_pid:
         del request.session['snort_ids_pid']
 
     # Check IPS status 
-    if check_process(ips_pid):
+    if check_process(global_ips_pid):
         status['ips_running'] = True
-        status['ips_pid'] = ips_pid
+        status['ips_pid'] = global_ips_pid
         status['running'] = True
-    elif ips_pid:
+    elif global_ips_pid:
         del request.session['snort_ips_pid']
 
     return JsonResponse(status)

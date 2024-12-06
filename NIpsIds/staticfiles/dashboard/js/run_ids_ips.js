@@ -35,7 +35,7 @@ async function startSnort(event) {
 
         if (response.ok) {
             alert(data.message);
-            document.getElementById('logging').innerText += data.message + " with pid: " + data.pid
+            document.getElementById('logging').innerText += data.message + " with pid: " + data.pid + "\n";
         } else {
             alert('Error starting Snort: ' + data.error);
         }

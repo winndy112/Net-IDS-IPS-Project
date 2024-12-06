@@ -5,3 +5,5 @@ NIpsIds/dashboard/__pycache__
 .github
 log/
 NIpsIds/dashboard/.env
+init-setup.sh
+server-setup.sh
