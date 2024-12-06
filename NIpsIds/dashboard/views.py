@@ -1,21 +1,20 @@
 from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 import json
 import os
 import signal
 import subprocess
-import time, threading
+import time
+import threading
 from datetime import datetime
 from django.views.decorators.http import require_http_methods
 import asyncio
 from channels.layers import get_channel_layer
 from django.views.decorators.csrf import csrf_exempt
-import os
 from pathlib import Path
 import requests
 import urllib3
 from dotenv import load_dotenv
-import os
 from .utils import get_interfaces
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -54,6 +53,45 @@ def get_interfaces_list(request):
     interfaces = get_interfaces()
     return JsonResponse({'interfaces': interfaces})
 
+def validate_rule(rule):
+    """Validate Snort rule syntax"""
+    required_components = ['alert', 'log', 'pass', 'drop', 'reject']  # Valid actions
+    protocols = ['tcp', 'udp', 'icmp', 'ip']
+    
+    # Basic structure check
+    if not rule or not isinstance(rule, str):
+        return False, "Invalid rule format"
+        
+    parts = rule.split()
+    if len(parts) < 7:  # Minimum components for a valid rule
+        return False, "Rule missing required components"
+        
+    # Validate action
+    if parts[0] not in required_components:
+        return False, "Invalid action"
+        
+    # Validate protocol
+    if parts[1] not in protocols:
+        return False, "Invalid protocol"
+        
+    # Check for basic rule structure (->)
+    if '->' not in rule:
+        return False, "Missing direction operator (->)"
+        
+    # Check for rule options (enclosed in parentheses)
+    if not (rule.count('(') == 1 and rule.count(')') == 1):
+        return False, "Invalid rule options format"
+        
+    # Validate msg field existence
+    if 'msg:' not in rule:
+        return False, "Missing msg field"
+        
+    # Validate sid field existence
+    if 'sid:' not in rule:
+        return False, "Missing sid field"
+    
+    return True, "Rule validation successful"
+
 @csrf_exempt
 def save_rule(request):
     global ruleset_dir
@@ -61,16 +99,50 @@ def save_rule(request):
         try:
             rule = request.POST.get('rule', '')
             if rule:
-                # Define the path to the WSL file
-                file_path = os.path.join(ruleset_dir,'local.rules')
-                
-                # Prepare the command to append to the file
-                command = f'echo "{rule}" | sudo tee -a {file_path} > /dev/null'
-                
-                # Execute the command
+                # Validate rule
+                is_valid, message = validate_rule(rule)
+                if not is_valid:
+                    return JsonResponse({'error': f'Invalid rule: {message}'}, status=400)
+
+                # Convert escaped double quotes back to regular quotes
+                rule = rule.replace('\\"', '"')
+
+                # Check priority level and action
+                priority_match = rule.find('priority:')
+                action = rule.split()[0]
+                is_high_priority = False
+                needs_drop_action = False
+
+                if priority_match != -1:
+                    priority_str = rule[priority_match:].split(';')[0]
+                    priority_num = ''.join(filter(str.isdigit, priority_str))
+                    is_high_priority = priority_num in ['1', '2']
+                    needs_drop_action = is_high_priority and action != 'drop'
+
+                # Define the paths to the files
+                local_path = os.path.join(ruleset_dir, 'local.rules')
+                ips_path = os.path.join(ruleset_dir, 'misp-result/ips.rules')
+
+                # Save to local.rules
+                command = f"echo '{rule}' | sudo tee -a {local_path} > /dev/null"
                 subprocess.run(command, shell=True, check=True, executable='/bin/bash')
 
-                return JsonResponse({'message': f'Rule saved: {rule}', 'ok': True})
+                # Handle high priority rules
+                if needs_drop_action:
+                    drop_rule = rule.replace(action, 'drop', 1)
+                    command = f"echo '{drop_rule}' | sudo tee -a {ips_path} > /dev/null"
+                    subprocess.run(command, shell=True, check=True, executable='/bin/bash')
+
+                response_message = 'Rule saved successfully'
+                if needs_drop_action:
+                    response_message = f'Rule saved with priority {priority_num}'
+
+                return JsonResponse({
+                    'message': response_message,
+                    'ok': True,
+                    'is_high_priority': is_high_priority,
+                    'needs_drop_action': needs_drop_action
+                })
             else:
                 return JsonResponse({'error': 'No rule provided'}, status=400)
         except Exception as e:
@@ -99,7 +171,7 @@ def gen_command_line(alert_path):
                 '-i', global_interface,
                 '-c', global_config_file,
                 '-l', alert_path,
-                '-A', 'alert_fast',  
+                '-A', 'alert_fast',
                 '-k', 'none',
                 '-y',
             ])
@@ -401,7 +473,7 @@ def check_snort_status(request):
 def get_tag_id(tag_name, headers, misp_url, verify_cert):
     tags_url = f"{misp_url}/tags/index"
     response = requests.get(tags_url, headers=headers, verify=verify_cert)
-    if response.status_code == 200:
+    if (response.status_code == 200):
         tags = response.json()
         for tag in tags:
             if tag['name'] == tag_name:
