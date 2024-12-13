@@ -37,7 +37,7 @@ function updateFields() {
 // Add this new validation function
 function validateRuleInputs() {
     const errors = [];
-    
+
     // Required fields validation
     const action = document.getElementById('action').value;
     const protocol = document.getElementById('protocol').value;
@@ -192,28 +192,28 @@ function saveRuleToFile() {
         },
         body: `rule=${encodeURIComponent(rule)}`,
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.ok) {
-            let message = data.message || 'Rule saved successfully.';
-            if (data.needs_drop_action) {
-                message += '\nHigh priority threat detected! Rule has been automatically added to IPS rules with DROP action.';
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
-            alert(message);
-            loadRulesetStatus(); // Refresh the rules table
-        } else {
-            alert('Error saving rule: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error saving rule: ' + error.message);
-    });
+            return response.json();
+        })
+        .then(data => {
+            if (data.ok) {
+                let message = data.message || 'Rule saved successfully.';
+                if (data.needs_drop_action) {
+                    message += '\nHigh priority threat detected! Rule has been automatically added to IPS rules with DROP action.';
+                }
+                alert(message);
+                loadRulesetStatus(); // Refresh the rules table
+            } else {
+                alert('Error saving rule: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error saving rule: ' + error.message);
+        });
 }
 
 function loadRulesetStatus() {
