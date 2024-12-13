@@ -339,7 +339,7 @@ def switch_ids_to_ips(request):
     global global_ips_pid
     global global_ids_pid
     try:
-        pid = request.session.get('snort_ips_pid')
+        pid = global_ips_pid
         if pid:
             return JsonResponse({'error': 'IPS mode process is running'})
         
@@ -371,7 +371,7 @@ def switch_ids_to_ips(request):
         request.session['snort_ips_pid'] = global_ips_pid
         
         # Terminate the IDS process
-        ids_pid = request.session.get('snort_ids_pid')
+        ids_pid = global_ids_pid
         if ids_pid:
             try:
                 os.kill(ids_pid, signal.SIGTERM)
@@ -380,10 +380,9 @@ def switch_ids_to_ips(request):
             except ProcessLookupError:
                 del request.session['snort_ids_pid']
         global_ids_pid = None
-        
         return JsonResponse({
             'message': f'Snort successfully switched to IPS mode. IPS PID: {global_ips_pid}',
-            'pid': global_ips_pid,
+            'pid': ids_pid,
             'log_file': os.path.join(alert_path, "alert_fast.txt")
         }, status=200)
       
